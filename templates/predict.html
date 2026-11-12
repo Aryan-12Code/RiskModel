@@ -1,0 +1,252 @@
+{% extends "base.html" %}
+
+{% block title %}Risk Prediction{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h2 class="mb-1"><i class="bi bi-graph-up-arrow me-2"></i>Risk Assessment</h2>
+        <p class="text-muted mb-4">Enter applicant details to generate a risk prediction with explainable AI insights.</p>
+    </div>
+</div>
+
+<div class="row g-4">
+    <!-- Prediction Form -->
+    <div class="col-lg-7">
+        <div class="card rm-card">
+            <div class="card-header rm-card-header">
+                <h5 class="mb-0"><i class="bi bi-person-lines-fill me-2"></i>Applicant Information</h5>
+            </div>
+            <div class="card-body">
+                <form id="predictionForm" novalidate>
+                    <!-- Personal Information -->
+                    <h6 class="text-uppercase text-muted mb-3 mt-2">
+                        <i class="bi bi-person me-1"></i>Personal Details
+                    </h6>
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-4">
+                            <label for="age" class="form-label">Age <span class="text-danger">*</span></label>
+                            <input type="number" class="form-control" id="age" name="age"
+                                   min="18" max="100" required placeholder="e.g. 35">
+                            <div class="invalid-feedback">Age must be between 18 and 100.</div>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="income" class="form-label">Annual Income ($) <span class="text-danger">*</span></label>
+                            <input type="number" class="form-control" id="income" name="income"
+                                   min="0" max="10000000" step="1000" required placeholder="e.g. 72000">
+                            <div class="invalid-feedback">Please enter a valid income.</div>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="employment_length" class="form-label">Employment (yrs) <span class="text-danger">*</span></label>
+                            <input type="number" class="form-control" id="employment_length" name="employment_length"
+                                   min="0" max="50" step="0.5" required placeholder="e.g. 5">
+                            <div class="invalid-feedback">Employment length must be 0–50 years.</div>
+                        </div>
+                    </div>
+
+                    <!-- Loan Details -->
+                    <h6 class="text-uppercase text-muted mb-3">
+                        <i class="bi bi-bank me-1"></i>Loan Details
+                    </h6>
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-4">
+                            <label for="loan_amount" class="form-label">Loan Amount ($) <span class="text-danger">*</span></label>
+                            <input type="number" class="form-control" id="loan_amount" name="loan_amount"
+                                   min="100" max="10000000" step="100" required placeholder="e.g. 25000">
+                            <div class="invalid-feedback">Please enter a valid loan amount.</div>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="interest_rate" class="form-label">Interest Rate (%) <span class="text-danger">*</span></label>
+                            <input type="number" class="form-control" id="interest_rate" name="interest_rate"
+                                   min="0" max="50" step="0.01" required placeholder="e.g. 5.5">
+                            <div class="invalid-feedback">Interest rate must be 0–50%.</div>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="loan_purpose" class="form-label">Loan Purpose <span class="text-danger">*</span></label>
+                            <select class="form-select" id="loan_purpose" name="loan_purpose" required>
+                                <option value="" disabled selected>Select purpose</option>
+                                <option value="personal">Personal</option>
+                                <option value="education">Education</option>
+                                <option value="medical">Medical</option>
+                                <option value="business">Business</option>
+                                <option value="home_improvement">Home Improvement</option>
+                                <option value="debt_consolidation">Debt Consolidation</option>
+                            </select>
+                            <div class="invalid-feedback">Please select a loan purpose.</div>
+                        </div>
+                    </div>
+
+                    <!-- Credit Profile -->
+                    <h6 class="text-uppercase text-muted mb-3">
+                        <i class="bi bi-credit-card me-1"></i>Credit Profile
+                    </h6>
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-4">
+                            <label for="credit_score" class="form-label">Credit Score <span class="text-danger">*</span></label>
+                            <input type="number" class="form-control" id="credit_score" name="credit_score"
+                                   min="300" max="850" required placeholder="e.g. 720">
+                            <div class="invalid-feedback">Credit score must be 300–850.</div>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="debt_to_income" class="form-label">Debt-to-Income Ratio <span class="text-danger">*</span></label>
+                            <input type="number" class="form-control" id="debt_to_income" name="debt_to_income"
+                                   min="0" max="5" step="0.01" required placeholder="e.g. 0.35">
+                            <div class="invalid-feedback">DTI must be between 0 and 5.</div>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="num_credit_lines" class="form-label">Credit Lines <span class="text-danger">*</span></label>
+                            <input type="number" class="form-control" id="num_credit_lines" name="num_credit_lines"
+                                   min="0" max="50" required placeholder="e.g. 5">
+                            <div class="invalid-feedback">Must be 0–50.</div>
+                        </div>
+                    </div>
+
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-4">
+                            <label for="num_late_payments" class="form-label">Late Payments <span class="text-danger">*</span></label>
+                            <input type="number" class="form-control" id="num_late_payments" name="num_late_payments"
+                                   min="0" max="30" required placeholder="e.g. 1">
+                            <div class="invalid-feedback">Must be 0–30.</div>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="home_ownership" class="form-label">Home Ownership <span class="text-danger">*</span></label>
+                            <select class="form-select" id="home_ownership" name="home_ownership" required>
+                                <option value="" disabled selected>Select status</option>
+                                <option value="own">Own</option>
+                                <option value="rent">Rent</option>
+                                <option value="mortgage">Mortgage</option>
+                            </select>
+                            <div class="invalid-feedback">Please select home ownership status.</div>
+                        </div>
+                    </div>
+
+                    <!-- Financial Details -->
+                    <h6 class="text-uppercase text-muted mb-3">
+                        <i class="bi bi-wallet2 me-1"></i>Financial Details
+                    </h6>
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-4">
+                            <label for="annual_revenue" class="form-label">Annual Revenue ($)</label>
+                            <input type="number" class="form-control" id="annual_revenue" name="annual_revenue"
+                                   min="0" max="100000000" step="1000" placeholder="e.g. 85000">
+                        </div>
+                        <div class="col-md-4">
+                            <label for="monthly_expenses" class="form-label">Monthly Expenses ($)</label>
+                            <input type="number" class="form-control" id="monthly_expenses" name="monthly_expenses"
+                                   min="0" max="1000000" step="100" placeholder="e.g. 3500">
+                        </div>
+                        <div class="col-md-4">
+                            <label for="savings_balance" class="form-label">Savings Balance ($)</label>
+                            <input type="number" class="form-control" id="savings_balance" name="savings_balance"
+                                   min="0" max="100000000" step="100" placeholder="e.g. 15000">
+                        </div>
+                    </div>
+
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                        <button type="reset" class="btn btn-outline-secondary">
+                            <i class="bi bi-arrow-counterclockwise me-1"></i>Reset
+                        </button>
+                        <button type="submit" class="btn btn-highlight px-4" id="submitBtn">
+                            <span id="submitText"><i class="bi bi-lightning-charge me-1"></i>Run Assessment</span>
+                            <span id="submitSpinner" class="d-none">
+                                <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                                Analyzing...
+                            </span>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Results Panel -->
+    <div class="col-lg-5">
+        <!-- Loading State -->
+        <div class="card rm-card d-none" id="loadingCard">
+            <div class="card-body text-center py-5">
+                <div class="spinner-border text-info mb-3" style="width: 3rem; height: 3rem;" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+                <h5 class="text-muted">Analyzing risk profile...</h5>
+                <p class="text-muted small">Running ensemble model prediction</p>
+            </div>
+        </div>
+
+        <!-- Results -->
+        <div id="resultsSection" class="d-none">
+            <!-- Risk Score Card -->
+            <div class="card rm-card mb-4">
+                <div class="card-header rm-card-header">
+                    <h5 class="mb-0"><i class="bi bi-speedometer2 me-2"></i>Risk Assessment Result</h5>
+                </div>
+                <div class="card-body text-center">
+                    <!-- Risk Gauge -->
+                    <div class="rm-gauge-container mb-3">
+                        <svg viewBox="0 0 200 120" class="rm-gauge">
+                            <path d="M 20 100 A 80 80 0 0 1 180 100" fill="none" stroke="#2a2a3e" stroke-width="14"
+                                  stroke-linecap="round"/>
+                            <path d="M 20 100 A 80 80 0 0 1 180 100" fill="none" stroke="url(#gaugeGradient)"
+                                  stroke-width="14" stroke-linecap="round"
+                                  id="gaugeArc" stroke-dasharray="0 251.3"/>
+                            <defs>
+                                <linearGradient id="gaugeGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                                    <stop offset="0%" style="stop-color:#28a745"/>
+                                    <stop offset="50%" style="stop-color:#ffc107"/>
+                                    <stop offset="100%" style="stop-color:#e94560"/>
+                                </linearGradient>
+                            </defs>
+                            <text x="100" y="90" text-anchor="middle" class="rm-gauge-text" id="gaugeScore">—</text>
+                            <text x="100" y="110" text-anchor="middle" class="rm-gauge-label">Risk Score</text>
+                        </svg>
+                    </div>
+
+                    <!-- Risk Level Badge -->
+                    <div class="mb-3">
+                        <span class="badge fs-5 px-4 py-2" id="riskLevelBadge">—</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SHAP Feature Importance -->
+            <div class="card rm-card mb-4">
+                <div class="card-header rm-card-header">
+                    <h5 class="mb-0"><i class="bi bi-bar-chart-horizontal me-2"></i>Feature Importance (SHAP)</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="shapChart" height="250"></canvas>
+                </div>
+            </div>
+
+            <!-- Top Contributing Factors -->
+            <div class="card rm-card">
+                <div class="card-header rm-card-header">
+                    <h5 class="mb-0"><i class="bi bi-list-ol me-2"></i>Top Contributing Factors</h5>
+                </div>
+                <div class="card-body">
+                    <ol class="list-group list-group-numbered" id="topFactorsList">
+                        <!-- Populated by JS -->
+                    </ol>
+                </div>
+            </div>
+        </div>
+
+        <!-- Placeholder when no results -->
+        <div class="card rm-card" id="resultsPlaceholder">
+            <div class="card-body text-center py-5">
+                <i class="bi bi-graph-up-arrow display-1 text-muted opacity-25 mb-3"></i>
+                <h5 class="text-muted">Results will appear here</h5>
+                <p class="text-muted small">Fill in the applicant details and run the assessment</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('predictionForm');
+    form.addEventListener('submit', handlePredictionSubmit);
+});
+</script>
+{% endblock %}

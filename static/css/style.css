@@ -1,0 +1,265 @@
+/* RiskModel — Financial Risk Assessment System Stylesheet */
+
+:root {
+    --rm-bg-dark: #0f111a;
+    --rm-bg-surface: #161b26;
+    --rm-bg-card: #1f2738;
+    --rm-border: #2d3748;
+    --rm-primary: #0f3460;
+    --rm-highlight: #e94560;
+    --rm-highlight-hover: #d1334e;
+    --rm-text: #e2e8f0;
+    --rm-text-muted: #94a3b8;
+    --rm-low: #10b981;
+    --rm-low-bg: rgba(16, 185, 129, 0.15);
+    --rm-medium: #f59e0b;
+    --rm-medium-bg: rgba(245, 158, 11, 0.15);
+    --rm-high: #ef4444;
+    --rm-high-bg: rgba(239, 68, 68, 0.15);
+}
+
+body {
+    background-color: var(--rm-bg-dark);
+    color: var(--rm-text);
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Navbar */
+.rm-navbar {
+    background: rgba(22, 27, 38, 0.95);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--rm-border);
+}
+
+.rm-navbar .navbar-brand {
+    color: #ffffff;
+    font-size: 1.3rem;
+    letter-spacing: 0.5px;
+}
+
+.rm-navbar .nav-link {
+    color: var(--rm-text-muted);
+    transition: color 0.2s ease;
+    padding: 0.5rem 0.85rem;
+}
+
+.rm-navbar .nav-link:hover,
+.rm-navbar .nav-link.active {
+    color: #ffffff;
+}
+
+/* Hero Section */
+.rm-hero {
+    background: linear-gradient(135deg, #161b26 0%, #1a2234 50%, #0f2b48 100%);
+    border: 1px solid var(--rm-border);
+    padding: 3.5rem 1.5rem;
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5);
+}
+
+/* Buttons */
+.btn-highlight {
+    background-color: var(--rm-highlight);
+    border-color: var(--rm-highlight);
+    color: #ffffff;
+    font-weight: 600;
+    transition: all 0.2s ease;
+}
+
+.btn-highlight:hover,
+.btn-highlight:focus {
+    background-color: var(--rm-highlight-hover);
+    border-color: var(--rm-highlight-hover);
+    color: #ffffff;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(233, 69, 96, 0.35);
+}
+
+.text-highlight {
+    color: var(--rm-highlight) !important;
+}
+
+.border-highlight {
+    border: 1px solid var(--rm-highlight) !important;
+}
+
+/* Cards */
+.rm-card {
+    background-color: var(--rm-bg-surface);
+    border: 1px solid var(--rm-border);
+    border-radius: 12px;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2);
+}
+
+.rm-card-header {
+    background-color: rgba(31, 39, 56, 0.6);
+    border-bottom: 1px solid var(--rm-border);
+    padding: 1rem 1.25rem;
+    font-weight: 600;
+}
+
+/* Stat Cards */
+.rm-stat-card {
+    background-color: var(--rm-bg-surface);
+    border: 1px solid var(--rm-border);
+    border-radius: 12px;
+    padding: 1.5rem 1rem;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.rm-stat-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+}
+
+.rm-stat-icon {
+    width: 48px;
+    height: 48px;
+    margin: 0 auto;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    background-color: rgba(59, 130, 246, 0.15);
+    color: #3b82f6;
+}
+
+.rm-stat-icon-danger {
+    background-color: var(--rm-high-bg);
+    color: var(--rm-high);
+}
+
+.rm-stat-icon-success {
+    background-color: var(--rm-low-bg);
+    color: var(--rm-low);
+}
+
+.rm-stat-number {
+    font-size: 2.2rem;
+    font-weight: 700;
+    color: #ffffff;
+    margin: 0.5rem 0 0.25rem;
+}
+
+/* Tables */
+.rm-table {
+    --bs-table-bg: transparent;
+    --bs-table-hover-bg: rgba(255, 255, 255, 0.04);
+    border-color: var(--rm-border);
+}
+
+.rm-table thead th {
+    background-color: rgba(31, 39, 56, 0.6);
+    color: var(--rm-text-muted);
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 0.75rem;
+    letter-spacing: 0.5px;
+    padding: 0.85rem 1rem;
+    border-bottom: 1px solid var(--rm-border);
+}
+
+.rm-table tbody td {
+    padding: 0.9rem 1rem;
+    vertical-align: middle;
+    border-bottom: 1px solid rgba(45, 55, 72, 0.6);
+}
+
+/* Badges */
+.rm-badge-low {
+    background-color: var(--rm-low-bg);
+    color: var(--rm-low);
+    border: 1px solid rgba(16, 185, 129, 0.3);
+    font-weight: 600;
+}
+
+.rm-badge-medium {
+    background-color: var(--rm-medium-bg);
+    color: var(--rm-medium);
+    border: 1px solid rgba(245, 158, 11, 0.3);
+    font-weight: 600;
+}
+
+.rm-badge-high {
+    background-color: var(--rm-high-bg);
+    color: var(--rm-high);
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    font-weight: 600;
+}
+
+/* Gauge Meter */
+.rm-gauge-container {
+    max-width: 260px;
+    margin: 0 auto;
+}
+
+.rm-gauge-text {
+    font-size: 28px;
+    font-weight: 700;
+    fill: #ffffff;
+}
+
+.rm-gauge-label {
+    font-size: 13px;
+    fill: var(--rm-text-muted);
+}
+
+/* Model Box */
+.rm-model-box {
+    background-color: rgba(31, 39, 56, 0.5);
+    border: 1px solid var(--rm-border);
+}
+
+/* Login Card */
+.rm-login-card {
+    border-top: 4px solid var(--rm-highlight);
+}
+
+/* Footer */
+.rm-footer {
+    background-color: var(--rm-bg-surface);
+    border-top: 1px solid var(--rm-border);
+}
+
+/* Inputs & Form styling */
+.form-control, .form-select {
+    background-color: #121722;
+    border-color: var(--rm-border);
+    color: var(--rm-text);
+}
+
+.form-control:focus, .form-select:focus {
+    background-color: #151c2a;
+    border-color: #3b82f6;
+    color: #ffffff;
+    box-shadow: 0 0 0 0.25rem rgba(59, 130, 246, 0.25);
+}
+
+.input-group-text {
+    background-color: #1a2233;
+    border-color: var(--rm-border);
+    color: var(--rm-text-muted);
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: var(--rm-bg-dark);
+}
+
+::-webkit-scrollbar-thumb {
+    background: #2d3748;
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #4a5568;
+}
+

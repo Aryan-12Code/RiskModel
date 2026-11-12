@@ -1,0 +1,189 @@
+{% extends "base.html" %}
+
+{% block title %}Prediction History{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col">
+        <h2 class="mb-1"><i class="bi bi-clock-history me-2"></i>Prediction History</h2>
+        <p class="text-muted">Browse, filter, and export past risk assessments.</p>
+    </div>
+</div>
+
+<!-- Filters -->
+<div class="card rm-card mb-4">
+    <div class="card-body">
+        <form id="filterForm" class="row g-3 align-items-end">
+            <div class="col-md-3">
+                <label for="filterDateFrom" class="form-label small text-muted">From Date</label>
+                <input type="date" class="form-control" id="filterDateFrom">
+            </div>
+            <div class="col-md-3">
+                <label for="filterDateTo" class="form-label small text-muted">To Date</label>
+                <input type="date" class="form-control" id="filterDateTo">
+            </div>
+            <div class="col-md-3">
+                <label for="filterRiskLevel" class="form-label small text-muted">Risk Level</label>
+                <select class="form-select" id="filterRiskLevel">
+                    <option value="">All Levels</option>
+                    <option value="low">Low Risk</option>
+                    <option value="medium">Medium Risk</option>
+                    <option value="high">High Risk</option>
+                </select>
+            </div>
+            <div class="col-md-3 d-flex gap-2">
+                <button type="submit" class="btn btn-highlight flex-fill">
+                    <i class="bi bi-funnel me-1"></i>Filter
+                </button>
+                <button type="button" class="btn btn-outline-secondary" id="clearFiltersBtn">
+                    <i class="bi bi-x-lg"></i>
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Actions Bar -->
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <span class="text-muted" id="historyCount">Showing 0 records</span>
+    <button class="btn btn-outline-light btn-sm" id="exportCsvBtn">
+        <i class="bi bi-download me-1"></i>Export CSV
+    </button>
+</div>
+
+<!-- History Table -->
+<div class="card rm-card">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-dark table-hover rm-table mb-0" id="historyTable">
+                <thead>
+                    <tr>
+                        <th class="sortable" data-sort="date" role="button">
+                            Date <i class="bi bi-arrow-down-up ms-1 small"></i>
+                        </th>
+                        <th class="sortable" data-sort="summary" role="button">
+                            Applicant Summary <i class="bi bi-arrow-down-up ms-1 small"></i>
+                        </th>
+                        <th class="sortable" data-sort="score" role="button">
+                            Risk Score <i class="bi bi-arrow-down-up ms-1 small"></i>
+                        </th>
+                        <th class="sortable" data-sort="level" role="button">
+                            Risk Level <i class="bi bi-arrow-down-up ms-1 small"></i>
+                        </th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody id="historyTableBody">
+                    <!-- Populated by JS or placeholder rows -->
+                    <tr>
+                        <td>2026-11-12 14:23</td>
+                        <td>Age 35, Income $72K, Loan $25K</td>
+                        <td><span class="fw-bold">0.23</span></td>
+                        <td><span class="badge rm-badge-low">Low</span></td>
+                        <td><button class="btn btn-sm btn-outline-info view-details-btn" data-id="1"><i class="bi bi-eye"></i></button></td>
+                    </tr>
+                    <tr>
+                        <td>2026-11-12 13:45</td>
+                        <td>Age 28, Income $45K, Loan $18K</td>
+                        <td><span class="fw-bold">0.67</span></td>
+                        <td><span class="badge rm-badge-high">High</span></td>
+                        <td><button class="btn btn-sm btn-outline-info view-details-btn" data-id="2"><i class="bi bi-eye"></i></button></td>
+                    </tr>
+                    <tr>
+                        <td>2026-11-11 16:12</td>
+                        <td>Age 42, Income $95K, Loan $40K</td>
+                        <td><span class="fw-bold">0.15</span></td>
+                        <td><span class="badge rm-badge-low">Low</span></td>
+                        <td><button class="btn btn-sm btn-outline-info view-details-btn" data-id="3"><i class="bi bi-eye"></i></button></td>
+                    </tr>
+                    <tr>
+                        <td>2026-11-11 11:30</td>
+                        <td>Age 31, Income $52K, Loan $22K</td>
+                        <td><span class="fw-bold">0.51</span></td>
+                        <td><span class="badge rm-badge-medium">Medium</span></td>
+                        <td><button class="btn btn-sm btn-outline-info view-details-btn" data-id="4"><i class="bi bi-eye"></i></button></td>
+                    </tr>
+                    <tr>
+                        <td>2026-11-10 09:55</td>
+                        <td>Age 55, Income $110K, Loan $60K</td>
+                        <td><span class="fw-bold">0.12</span></td>
+                        <td><span class="badge rm-badge-low">Low</span></td>
+                        <td><button class="btn btn-sm btn-outline-info view-details-btn" data-id="5"><i class="bi bi-eye"></i></button></td>
+                    </tr>
+                    <tr>
+                        <td>2026-11-10 08:20</td>
+                        <td>Age 24, Income $32K, Loan $12K</td>
+                        <td><span class="fw-bold">0.78</span></td>
+                        <td><span class="badge rm-badge-high">High</span></td>
+                        <td><button class="btn btn-sm btn-outline-info view-details-btn" data-id="6"><i class="bi bi-eye"></i></button></td>
+                    </tr>
+                    <tr>
+                        <td>2026-11-09 15:40</td>
+                        <td>Age 38, Income $68K, Loan $30K</td>
+                        <td><span class="fw-bold">0.41</span></td>
+                        <td><span class="badge rm-badge-medium">Medium</span></td>
+                        <td><button class="btn btn-sm btn-outline-info view-details-btn" data-id="7"><i class="bi bi-eye"></i></button></td>
+                    </tr>
+                    <tr>
+                        <td>2026-11-09 10:15</td>
+                        <td>Age 47, Income $88K, Loan $35K</td>
+                        <td><span class="fw-bold">0.19</span></td>
+                        <td><span class="badge rm-badge-low">Low</span></td>
+                        <td><button class="btn btn-sm btn-outline-info view-details-btn" data-id="8"><i class="bi bi-eye"></i></button></td>
+                    </tr>
+                    <tr>
+                        <td>2026-11-08 14:50</td>
+                        <td>Age 29, Income $41K, Loan $15K</td>
+                        <td><span class="fw-bold">0.62</span></td>
+                        <td><span class="badge rm-badge-high">High</span></td>
+                        <td><button class="btn btn-sm btn-outline-info view-details-btn" data-id="9"><i class="bi bi-eye"></i></button></td>
+                    </tr>
+                    <tr>
+                        <td>2026-11-08 09:30</td>
+                        <td>Age 33, Income $58K, Loan $20K</td>
+                        <td><span class="fw-bold">0.35</span></td>
+                        <td><span class="badge rm-badge-medium">Medium</span></td>
+                        <td><button class="btn btn-sm btn-outline-info view-details-btn" data-id="10"><i class="bi bi-eye"></i></button></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Pagination -->
+<nav aria-label="History pagination" class="mt-4">
+    <ul class="pagination justify-content-center" id="historyPagination">
+        <li class="page-item disabled"><a class="page-link" href="#" data-page="prev">&laquo; Prev</a></li>
+        <li class="page-item active"><a class="page-link" href="#" data-page="1">1</a></li>
+        <li class="page-item"><a class="page-link" href="#" data-page="2">2</a></li>
+        <li class="page-item"><a class="page-link" href="#" data-page="3">3</a></li>
+        <li class="page-item"><a class="page-link" href="#" data-page="next">Next &raquo;</a></li>
+    </ul>
+</nav>
+
+<!-- Detail Modal -->
+<div class="modal fade" id="detailModal" tabindex="-1" aria-labelledby="detailModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content rm-card">
+            <div class="modal-header rm-card-header">
+                <h5 class="modal-title" id="detailModalLabel">
+                    <i class="bi bi-file-earmark-text me-2"></i>Prediction Details
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" id="detailModalBody">
+                <!-- Populated by JS -->
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    initHistoryPage();
+});
+</script>
+{% endblock %}

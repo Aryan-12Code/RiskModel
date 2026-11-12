@@ -1,0 +1,280 @@
+{% extends "base.html" %}
+
+{% block title %}About{% endblock %}
+
+{% block content %}
+<!-- Header -->
+<div class="row mb-5">
+    <div class="col-lg-8 mx-auto text-center">
+        <h2 class="display-5 fw-bold mb-3"><i class="bi bi-info-circle me-2"></i>About RiskModel</h2>
+        <p class="lead text-muted">
+            An AI-powered financial risk assessment platform delivering transparent,
+            explainable credit risk predictions for informed lending decisions.
+        </p>
+    </div>
+</div>
+
+<!-- Project Description -->
+<section class="mb-5">
+    <div class="row g-4">
+        <div class="col-lg-6">
+            <div class="card rm-card h-100">
+                <div class="card-header rm-card-header">
+                    <h5 class="mb-0"><i class="bi bi-bullseye me-2"></i>Project Overview</h5>
+                </div>
+                <div class="card-body">
+                    <p>
+                        RiskModel is a comprehensive financial risk assessment system designed
+                        for lending institutions, credit analysts, and financial services companies.
+                        It leverages state-of-the-art machine learning techniques to evaluate
+                        credit risk with high accuracy and full transparency.
+                    </p>
+                    <p>
+                        The platform processes applicant data — including income, credit history,
+                        employment, and loan details — to produce a calibrated risk score along
+                        with detailed explanations of what drives each prediction.
+                    </p>
+                    <ul class="list-unstyled mt-3">
+                        <li class="mb-2"><i class="bi bi-check-circle-fill text-success me-2"></i>Ensemble ML models for robust predictions</li>
+                        <li class="mb-2"><i class="bi bi-check-circle-fill text-success me-2"></i>SHAP-powered explainable AI</li>
+                        <li class="mb-2"><i class="bi bi-check-circle-fill text-success me-2"></i>Real-time risk scoring via REST API</li>
+                        <li class="mb-2"><i class="bi bi-check-circle-fill text-success me-2"></i>Comprehensive prediction history & analytics</li>
+                        <li class="mb-2"><i class="bi bi-check-circle-fill text-success me-2"></i>Role-based access control with JWT auth</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-6">
+            <div class="card rm-card h-100">
+                <div class="card-header rm-card-header">
+                    <h5 class="mb-0"><i class="bi bi-cpu me-2"></i>How the Model Works</h5>
+                </div>
+                <div class="card-body">
+                    <h6 class="text-highlight mb-3">Ensemble Architecture</h6>
+                    <p>
+                        RiskModel employs an <strong>ensemble approach</strong> combining two
+                        gradient boosting frameworks for maximum predictive power:
+                    </p>
+
+                    <div class="rm-model-box mb-3 p-3 rounded">
+                        <h6 class="mb-2"><i class="bi bi-diagram-3 me-1"></i>XGBoost (Extreme Gradient Boosting)</h6>
+                        <p class="small mb-0">
+                            Optimized gradient boosting with regularization, handling missing values
+                            natively. Tuned via GridSearchCV for optimal hyperparameters including
+                            max_depth, learning_rate, and n_estimators.
+                        </p>
+                    </div>
+
+                    <div class="rm-model-box mb-3 p-3 rounded">
+                        <h6 class="mb-2"><i class="bi bi-diagram-3 me-1"></i>LightGBM (Light Gradient Boosting Machine)</h6>
+                        <p class="small mb-0">
+                            Histogram-based gradient boosting with leaf-wise tree growth for
+                            faster training and competitive accuracy. Handles categorical features
+                            directly.
+                        </p>
+                    </div>
+
+                    <div class="rm-model-box p-3 rounded border-highlight">
+                        <h6 class="mb-2"><i class="bi bi-intersect me-1"></i>Soft Voting Ensemble</h6>
+                        <p class="small mb-0">
+                            Both models are combined using a <strong>VotingClassifier with soft voting</strong>,
+                            averaging probability predictions for a more robust and calibrated
+                            risk score.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- SHAP Explainability -->
+<section class="mb-5">
+    <div class="card rm-card">
+        <div class="card-header rm-card-header">
+            <h5 class="mb-0"><i class="bi bi-lightbulb me-2"></i>SHAP Explainability</h5>
+        </div>
+        <div class="card-body">
+            <div class="row g-4">
+                <div class="col-md-6">
+                    <h6 class="mb-3">What is SHAP?</h6>
+                    <p>
+                        <strong>SHAP (SHapley Additive exPlanations)</strong> is a game-theoretic
+                        approach to explain the output of any machine learning model. Based on
+                        Shapley values from cooperative game theory, SHAP assigns each feature an
+                        importance value for a particular prediction.
+                    </p>
+                    <p>
+                        Unlike traditional feature importance metrics that provide a global view,
+                        SHAP values explain <strong>individual predictions</strong>, showing exactly
+                        how each input feature pushed the prediction higher or lower.
+                    </p>
+                </div>
+                <div class="col-md-6">
+                    <h6 class="mb-3">How We Use SHAP</h6>
+                    <ul class="list-group list-group-flush">
+                        <li class="list-group-item bg-transparent border-secondary">
+                            <i class="bi bi-bar-chart-horizontal text-info me-2"></i>
+                            <strong>Feature Importance Charts</strong> — Horizontal bar charts showing
+                            which features contributed most to each risk score
+                        </li>
+                        <li class="list-group-item bg-transparent border-secondary">
+                            <i class="bi bi-list-ol text-info me-2"></i>
+                            <strong>Top Contributing Factors</strong> — Ranked list of the 5 most
+                            influential features for every prediction
+                        </li>
+                        <li class="list-group-item bg-transparent border-secondary">
+                            <i class="bi bi-graph-up text-info me-2"></i>
+                            <strong>Summary Plots</strong> — Global overview of feature impacts
+                            across all predictions
+                        </li>
+                        <li class="list-group-item bg-transparent border-secondary">
+                            <i class="bi bi-shield-check text-info me-2"></i>
+                            <strong>Regulatory Compliance</strong> — Transparent explanations for
+                            auditing and fair lending requirements
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Team & Tech Stack -->
+<section class="mb-5">
+    <div class="row g-4">
+        <!-- Team -->
+        <div class="col-lg-5">
+            <div class="card rm-card h-100">
+                <div class="card-header rm-card-header">
+                    <h5 class="mb-0"><i class="bi bi-people me-2"></i>Team</h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-flex align-items-center mb-3 p-2 rounded rm-team-member">
+                        <div class="rm-avatar me-3">
+                            <i class="bi bi-person-circle display-6"></i>
+                        </div>
+                        <div>
+                            <h6 class="mb-0">Data Science Team</h6>
+                            <small class="text-muted">ML Model Development & Training</small>
+                        </div>
+                    </div>
+                    <div class="d-flex align-items-center mb-3 p-2 rounded rm-team-member">
+                        <div class="rm-avatar me-3">
+                            <i class="bi bi-person-circle display-6"></i>
+                        </div>
+                        <div>
+                            <h6 class="mb-0">Backend Engineering</h6>
+                            <small class="text-muted">API Development & Infrastructure</small>
+                        </div>
+                    </div>
+                    <div class="d-flex align-items-center mb-3 p-2 rounded rm-team-member">
+                        <div class="rm-avatar me-3">
+                            <i class="bi bi-person-circle display-6"></i>
+                        </div>
+                        <div>
+                            <h6 class="mb-0">Frontend Development</h6>
+                            <small class="text-muted">Dashboard & User Interface</small>
+                        </div>
+                    </div>
+                    <div class="d-flex align-items-center p-2 rounded rm-team-member">
+                        <div class="rm-avatar me-3">
+                            <i class="bi bi-person-circle display-6"></i>
+                        </div>
+                        <div>
+                            <h6 class="mb-0">Risk & Compliance</h6>
+                            <small class="text-muted">Model Validation & Governance</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Technology Stack -->
+        <div class="col-lg-7">
+            <div class="card rm-card h-100">
+                <div class="card-header rm-card-header">
+                    <h5 class="mb-0"><i class="bi bi-stack me-2"></i>Technology Stack</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row g-2">
+                        <div class="col-6 col-md-4">
+                            <div class="rm-tech-badge">
+                                <i class="bi bi-filetype-py text-warning"></i>
+                                <span>Python 3.10</span>
+                            </div>
+                        </div>
+                        <div class="col-6 col-md-4">
+                            <div class="rm-tech-badge">
+                                <i class="bi bi-globe text-info"></i>
+                                <span>Flask</span>
+                            </div>
+                        </div>
+                        <div class="col-6 col-md-4">
+                            <div class="rm-tech-badge">
+                                <i class="bi bi-lightning-charge text-success"></i>
+                                <span>XGBoost</span>
+                            </div>
+                        </div>
+                        <div class="col-6 col-md-4">
+                            <div class="rm-tech-badge">
+                                <i class="bi bi-lightning text-success"></i>
+                                <span>LightGBM</span>
+                            </div>
+                        </div>
+                        <div class="col-6 col-md-4">
+                            <div class="rm-tech-badge">
+                                <i class="bi bi-lightbulb text-warning"></i>
+                                <span>SHAP</span>
+                            </div>
+                        </div>
+                        <div class="col-6 col-md-4">
+                            <div class="rm-tech-badge">
+                                <i class="bi bi-journal-code text-info"></i>
+                                <span>MLflow</span>
+                            </div>
+                        </div>
+                        <div class="col-6 col-md-4">
+                            <div class="rm-tech-badge">
+                                <i class="bi bi-table text-primary"></i>
+                                <span>Pandas</span>
+                            </div>
+                        </div>
+                        <div class="col-6 col-md-4">
+                            <div class="rm-tech-badge">
+                                <i class="bi bi-calculator text-danger"></i>
+                                <span>Scikit-learn</span>
+                            </div>
+                        </div>
+                        <div class="col-6 col-md-4">
+                            <div class="rm-tech-badge">
+                                <i class="bi bi-bootstrap text-purple"></i>
+                                <span>Bootstrap 5.3</span>
+                            </div>
+                        </div>
+                        <div class="col-6 col-md-4">
+                            <div class="rm-tech-badge">
+                                <i class="bi bi-bar-chart text-info"></i>
+                                <span>Chart.js</span>
+                            </div>
+                        </div>
+                        <div class="col-6 col-md-4">
+                            <div class="rm-tech-badge">
+                                <i class="bi bi-database text-warning"></i>
+                                <span>SQLite</span>
+                            </div>
+                        </div>
+                        <div class="col-6 col-md-4">
+                            <div class="rm-tech-badge">
+                                <i class="bi bi-key text-danger"></i>
+                                <span>JWT Auth</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}

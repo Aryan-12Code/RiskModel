@@ -1,0 +1,242 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard{% endblock %}
+
+{% block content %}
+<!-- Hero Section -->
+<section class="rm-hero text-center py-5 mb-4 rounded-4">
+    <div class="container">
+        <h1 class="display-4 fw-bold mb-3">
+            <i class="bi bi-shield-check me-2"></i>Financial Risk Assessment System
+        </h1>
+        <p class="lead text-light opacity-75 mb-4">
+            AI-powered credit risk scoring with transparent, explainable predictions.
+            Make informed lending decisions backed by ensemble machine learning.
+        </p>
+        <div class="d-flex gap-3 justify-content-center flex-wrap">
+            <a href="{{ url_for('predict') }}" class="btn btn-highlight btn-lg px-4">
+                <i class="bi bi-plus-circle me-2"></i>New Assessment
+            </a>
+            <a href="{{ url_for('history') }}" class="btn btn-outline-light btn-lg px-4">
+                <i class="bi bi-file-earmark-bar-graph me-2"></i>View Reports
+            </a>
+        </div>
+    </div>
+</section>
+
+<!-- Stats Cards -->
+<section class="mb-5">
+    <div class="row g-4">
+        <div class="col-lg-3 col-md-6">
+            <div class="card rm-stat-card h-100">
+                <div class="card-body text-center">
+                    <div class="rm-stat-icon mb-3">
+                        <i class="bi bi-bar-chart-line-fill"></i>
+                    </div>
+                    <h2 class="rm-stat-number" id="totalPredictions">1,247</h2>
+                    <p class="text-muted mb-0">Total Predictions</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6">
+            <div class="card rm-stat-card h-100">
+                <div class="card-body text-center">
+                    <div class="rm-stat-icon mb-3">
+                        <i class="bi bi-speedometer"></i>
+                    </div>
+                    <h2 class="rm-stat-number" id="avgRiskScore">0.34</h2>
+                    <p class="text-muted mb-0">Average Risk Score</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6">
+            <div class="card rm-stat-card h-100">
+                <div class="card-body text-center">
+                    <div class="rm-stat-icon rm-stat-icon-danger mb-3">
+                        <i class="bi bi-exclamation-triangle-fill"></i>
+                    </div>
+                    <h2 class="rm-stat-number text-danger" id="highRiskPct">18.3%</h2>
+                    <p class="text-muted mb-0">High Risk %</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6">
+            <div class="card rm-stat-card h-100">
+                <div class="card-body text-center">
+                    <div class="rm-stat-icon rm-stat-icon-success mb-3">
+                        <i class="bi bi-bullseye"></i>
+                    </div>
+                    <h2 class="rm-stat-number text-success" id="modelAccuracy">94.7%</h2>
+                    <p class="text-muted mb-0">Model Accuracy</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Charts & Recent Predictions -->
+<section class="mb-5">
+    <div class="row g-4">
+        <!-- Risk Distribution Chart -->
+        <div class="col-lg-5">
+            <div class="card rm-card h-100">
+                <div class="card-header rm-card-header">
+                    <h5 class="mb-0"><i class="bi bi-pie-chart-fill me-2"></i>Risk Distribution</h5>
+                </div>
+                <div class="card-body d-flex align-items-center justify-content-center">
+                    <div style="max-width: 320px; width: 100%;">
+                        <canvas id="riskDistributionChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Predictions Table -->
+        <div class="col-lg-7">
+            <div class="card rm-card h-100">
+                <div class="card-header rm-card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="bi bi-clock-history me-2"></i>Recent Predictions</h5>
+                    <a href="{{ url_for('history') }}" class="btn btn-sm btn-outline-light">View All</a>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-dark table-hover rm-table mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Applicant</th>
+                                    <th>Risk Score</th>
+                                    <th>Risk Level</th>
+                                </tr>
+                            </thead>
+                            <tbody id="recentPredictionsBody">
+                                <tr>
+                                    <td>2026-11-12</td>
+                                    <td>Age 35, Income $72K</td>
+                                    <td>0.23</td>
+                                    <td><span class="badge rm-badge-low">Low</span></td>
+                                </tr>
+                                <tr>
+                                    <td>2026-11-12</td>
+                                    <td>Age 28, Income $45K</td>
+                                    <td>0.67</td>
+                                    <td><span class="badge rm-badge-high">High</span></td>
+                                </tr>
+                                <tr>
+                                    <td>2026-11-11</td>
+                                    <td>Age 42, Income $95K</td>
+                                    <td>0.15</td>
+                                    <td><span class="badge rm-badge-low">Low</span></td>
+                                </tr>
+                                <tr>
+                                    <td>2026-11-11</td>
+                                    <td>Age 31, Income $52K</td>
+                                    <td>0.51</td>
+                                    <td><span class="badge rm-badge-medium">Medium</span></td>
+                                </tr>
+                                <tr>
+                                    <td>2026-11-10</td>
+                                    <td>Age 55, Income $110K</td>
+                                    <td>0.12</td>
+                                    <td><span class="badge rm-badge-low">Low</span></td>
+                                </tr>
+                                <tr>
+                                    <td>2026-11-10</td>
+                                    <td>Age 24, Income $32K</td>
+                                    <td>0.78</td>
+                                    <td><span class="badge rm-badge-high">High</span></td>
+                                </tr>
+                                <tr>
+                                    <td>2026-11-09</td>
+                                    <td>Age 38, Income $68K</td>
+                                    <td>0.41</td>
+                                    <td><span class="badge rm-badge-medium">Medium</span></td>
+                                </tr>
+                                <tr>
+                                    <td>2026-11-09</td>
+                                    <td>Age 47, Income $88K</td>
+                                    <td>0.19</td>
+                                    <td><span class="badge rm-badge-low">Low</span></td>
+                                </tr>
+                                <tr>
+                                    <td>2026-11-08</td>
+                                    <td>Age 29, Income $41K</td>
+                                    <td>0.62</td>
+                                    <td><span class="badge rm-badge-high">High</span></td>
+                                </tr>
+                                <tr>
+                                    <td>2026-11-08</td>
+                                    <td>Age 33, Income $58K</td>
+                                    <td>0.35</td>
+                                    <td><span class="badge rm-badge-medium">Medium</span></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Risk Distribution Doughnut Chart
+    const ctx = document.getElementById('riskDistributionChart');
+    if (ctx) {
+        new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Low Risk', 'Medium Risk', 'High Risk'],
+                datasets: [{
+                    data: [58, 24, 18],
+                    backgroundColor: ['#28a745', '#ffc107', '#e94560'],
+                    borderColor: ['#1e7e34', '#d39e00', '#c0392b'],
+                    borderWidth: 2
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: { color: '#ccc', padding: 16, font: { size: 13 } }
+                    }
+                },
+                cutout: '60%'
+            }
+        });
+    }
+
+    // Try loading live stats from API
+    loadDashboardStats();
+});
+
+async function loadDashboardStats() {
+    try {
+        const token = localStorage.getItem('rm_token');
+        const headers = token ? { 'Authorization': 'Bearer ' + token } : {};
+        const resp = await fetch('/api/prediction-stats', { headers });
+        if (resp.ok) {
+            const data = await resp.json();
+            if (data.total_predictions !== undefined) {
+                document.getElementById('totalPredictions').textContent = data.total_predictions.toLocaleString();
+            }
+            if (data.average_risk_score !== undefined) {
+                document.getElementById('avgRiskScore').textContent = data.average_risk_score.toFixed(2);
+            }
+            if (data.high_risk_percentage !== undefined) {
+                document.getElementById('highRiskPct').textContent = data.high_risk_percentage.toFixed(1) + '%';
+            }
+            if (data.model_accuracy !== undefined) {
+                document.getElementById('modelAccuracy').textContent = data.model_accuracy.toFixed(1) + '%';
+            }
+        }
+    } catch (e) {
+        // Use placeholder values if API not available
+    }
+}
+</script>
+{% endblock %}
