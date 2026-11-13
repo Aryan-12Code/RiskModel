@@ -519,3 +519,37 @@ function showDetailModal(record) {
     modal.show();
 }
 
+// ============================================================================
+// Dashboard Statistics Management
+// ============================================================================
+
+async function loadDashboardStats() {
+    try {
+        const token = localStorage.getItem('rm_token');
+        const headers = token ? { 'Authorization': 'Bearer ' + token } : {};
+        const resp = await fetch('/api/prediction-stats', { headers });
+        if (resp.ok) {
+            const data = await resp.json();
+            const totalEl = document.getElementById('totalPredictions');
+            if (totalEl && data.total_predictions !== undefined) {
+                totalEl.textContent = data.total_predictions.toLocaleString();
+            }
+            const avgEl = document.getElementById('avgRiskScore');
+            if (avgEl && data.average_risk_score !== undefined) {
+                avgEl.textContent = data.average_risk_score.toFixed(2);
+            }
+            const highPctEl = document.getElementById('highRiskPct');
+            if (highPctEl && data.high_risk_percentage !== undefined) {
+                highPctEl.textContent = data.high_risk_percentage.toFixed(1) + '%';
+            }
+            const accEl = document.getElementById('modelAccuracy');
+            if (accEl && data.model_accuracy !== undefined) {
+                accEl.textContent = data.model_accuracy.toFixed(1) + '%';
+            }
+        }
+    } catch (e) {
+        console.warn('Dashboard stats API not reachable');
+    }
+}
+
+

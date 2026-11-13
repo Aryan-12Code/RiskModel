@@ -148,7 +148,8 @@ def _predict_single(data: Dict[str, Any]) -> Dict[str, Any]:
 # ---------------------------------------------------------------------------
 
 @api_bp.route('/predict', methods=['POST'])
-def predict():
+@token_required
+def predict(current_user: Dict[str, str]):
     """
     Single-applicant prediction endpoint.
 
@@ -162,15 +163,6 @@ def predict():
             "message": "Prediction completed"
         }
     """
-    auth_header = request.headers.get('Authorization', '')
-    if auth_header.startswith('Bearer '):
-        token = auth_header.split(' ', 1)[1]
-        try:
-            from auth import _decode_token
-            _decode_token(token)
-        except Exception:
-            return jsonify({"status": "error", "data": None, "message": "Invalid or expired token"}), 401
-
     body = request.get_json(silent=True)
     if not body:
         return jsonify({"status": "error", "data": None, "message": "Request body must be JSON"}), 400
@@ -360,7 +352,8 @@ def shap_summary(current_user: Dict[str, str]):
 
 
 @api_bp.route('/prediction-history', methods=['GET'])
-def prediction_history():
+@token_required
+def prediction_history(current_user: Dict[str, str]):
     """Return past predictions from the database."""
     db_path = current_app.config['DATABASE_URI']
     limit = request.args.get('limit', 100, type=int)
@@ -382,7 +375,8 @@ def prediction_history():
 
 
 @api_bp.route('/prediction-stats', methods=['GET'])
-def prediction_stats():
+@token_required
+def prediction_stats(current_user: Dict[str, str]):
     """Return aggregate prediction statistics for dashboard."""
     db_path = current_app.config['DATABASE_URI']
     from database import get_prediction_stats

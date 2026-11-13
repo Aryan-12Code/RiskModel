@@ -114,6 +114,58 @@ class TestPredictEndpoint:
         response = client.post('/api/predict', headers=headers)
         assert response.status_code in (400, 415, 422)
 
+    def test_predict_no_token_returns_401(self, client):
+        """POST /api/predict without token returns 401."""
+        response = client.post(
+            '/api/predict',
+            data=json.dumps(VALID_APPLICANT),
+            content_type='application/json'
+        )
+        assert response.status_code == 401
+
+    def test_predict_valid_token_returns_200(self, client, auth_token):
+        """POST /api/predict with valid token returns 200."""
+        headers = {
+            'Content-Type': 'application/json',
+            'Authorization': f'Bearer {auth_token}'
+        }
+        response = client.post(
+            '/api/predict',
+            data=json.dumps(VALID_APPLICANT),
+            headers=headers
+        )
+        assert response.status_code == 200
+
+
+class TestPredictionHistoryEndpoint:
+    """Tests for the prediction history endpoint."""
+
+    def test_prediction_history_no_token_returns_401(self, client):
+        """GET /api/prediction-history without token returns 401."""
+        response = client.get('/api/prediction-history')
+        assert response.status_code == 401
+
+    def test_prediction_history_valid_token_returns_200(self, client, auth_token):
+        """GET /api/prediction-history with valid token returns 200."""
+        headers = {'Authorization': f'Bearer {auth_token}'}
+        response = client.get('/api/prediction-history', headers=headers)
+        assert response.status_code == 200
+
+
+class TestPredictionStatsEndpoint:
+    """Tests for the prediction stats endpoint."""
+
+    def test_prediction_stats_no_token_returns_401(self, client):
+        """GET /api/prediction-stats without token returns 401."""
+        response = client.get('/api/prediction-stats')
+        assert response.status_code == 401
+
+    def test_prediction_stats_valid_token_returns_200(self, client, auth_token):
+        """GET /api/prediction-stats with valid token returns 200."""
+        headers = {'Authorization': f'Bearer {auth_token}'}
+        response = client.get('/api/prediction-stats', headers=headers)
+        assert response.status_code == 200
+
 
 class TestModelInfoEndpoint:
     """Tests for the model info endpoint."""
