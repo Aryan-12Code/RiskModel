@@ -12,9 +12,16 @@ document.addEventListener('DOMContentLoaded', function() {
 // Authentication UI and Handlers
 // ============================================================================
 
+function clearTokenAndRedirect() {
+    sessionStorage.removeItem('rm_token');
+    sessionStorage.removeItem('rm_username');
+    sessionStorage.removeItem('rm_role');
+    window.location.href = '/login';
+}
+
 function updateAuthUI() {
-    const token = localStorage.getItem('rm_token');
-    const username = localStorage.getItem('rm_username');
+    const token = sessionStorage.getItem('rm_token');
+    const username = sessionStorage.getItem('rm_username');
     const authSection = document.getElementById('authSection');
     const loginBtn = document.getElementById('loginBtn');
     const userSection = document.getElementById('userSection');
@@ -22,10 +29,10 @@ function updateAuthUI() {
 
     if (!authSection) return;
 
-    if (token && username) {
+    if (token) {
         if (loginBtn) loginBtn.classList.add('d-none');
         if (userSection) userSection.classList.remove('d-none');
-        if (usernameBadge) usernameBadge.textContent = username;
+        if (usernameBadge) usernameBadge.textContent = username || 'User';
     } else {
         if (loginBtn) loginBtn.classList.remove('d-none');
         if (userSection) userSection.classList.add('d-none');
@@ -33,9 +40,9 @@ function updateAuthUI() {
 }
 
 function handleLogout() {
-    localStorage.removeItem('rm_token');
-    localStorage.removeItem('rm_username');
-    localStorage.removeItem('rm_role');
+    sessionStorage.removeItem('rm_token');
+    sessionStorage.removeItem('rm_username');
+    sessionStorage.removeItem('rm_role');
     showNotification('You have been logged out successfully.', 'info');
     updateAuthUI();
     setTimeout(() => {
@@ -76,9 +83,9 @@ async function handleLoginSubmit(event) {
         if (response.ok && resData.status === 'success') {
             const token = resData.data.token;
             const user = resData.data.user;
-            localStorage.setItem('rm_token', token);
-            localStorage.setItem('rm_username', user.username || username);
-            localStorage.setItem('rm_role', user.role || 'analyst');
+            sessionStorage.setItem('rm_token', token);
+            sessionStorage.setItem('rm_username', (user && user.username) || username);
+            sessionStorage.setItem('rm_role', (user && user.role) || 'analyst');
             window.location.href = '/';
         } else {
             const errMsg = resData.message || 'Invalid username or password';
@@ -175,7 +182,7 @@ async function handlePredictionSubmit(event) {
     if (loadingCard) loadingCard.classList.remove('d-none');
 
     try {
-        const token = localStorage.getItem('rm_token');
+        const token = sessionStorage.getItem('rm_token');
         const headers = { 'Content-Type': 'application/json' };
         if (token) headers['Authorization'] = 'Bearer ' + token;
 
@@ -184,6 +191,11 @@ async function handlePredictionSubmit(event) {
             headers: headers,
             body: JSON.stringify(payload)
         });
+
+        if (response.status === 401) {
+            clearTokenAndRedirect();
+            return;
+        }
 
         const resData = await response.json();
 
@@ -382,9 +394,14 @@ async function initHistoryPage() {
 
 async function loadPredictionHistory() {
     try {
-        const token = localStorage.getItem('rm_token');
+        const token = sessionStorage.getItem('rm_token');
         const headers = token ? { 'Authorization': 'Bearer ' + token } : {};
         const response = await fetch('/api/prediction-history?limit=100', { headers });
+
+        if (response.status === 401) {
+            clearTokenAndRedirect();
+            return;
+        }
 
         if (response.ok) {
             const data = await response.json();
@@ -525,9 +542,13 @@ function showDetailModal(record) {
 
 async function loadDashboardStats() {
     try {
-        const token = localStorage.getItem('rm_token');
+        const token = sessionStorage.getItem('rm_token');
         const headers = token ? { 'Authorization': 'Bearer ' + token } : {};
         const resp = await fetch('/api/prediction-stats', { headers });
+        if (resp.status === 401) {
+            clearTokenAndRedirect();
+            return;
+        }
         if (resp.ok) {
             const data = await resp.json();
             const totalEl = document.getElementById('totalPredictions');

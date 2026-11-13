@@ -209,3 +209,16 @@ class TestAuthEndpoint:
             content_type='application/json'
         )
         assert response.status_code == 401
+
+
+class TestLoginRoute:
+    """Tests for the login route and form."""
+
+    def test_get_login_returns_200_and_contains_username_and_password_fields(self, client):
+        """GET /login returns 200 and contains a username and a password field."""
+        response = client.get('/login')
+        assert response.status_code == 200
+        html = response.get_data(as_text=True)
+        assert 'name="username"' in html
+        assert 'name="password"' in html
+
