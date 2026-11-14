@@ -7,6 +7,11 @@ development, testing, and production environments.
 
 import os
 
+from dotenv import load_dotenv
+
+# Load .env before any Config class reads os.environ
+load_dotenv()
+
 # Base directory of the project
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 
@@ -14,7 +19,7 @@ BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 class Config:
     """Base configuration class with default settings."""
 
-    SECRET_KEY = os.environ.get('SECRET_KEY', 'riskmodel-dev-secret-key-change-in-prod')
+    SECRET_KEY = os.environ.get('SECRET_KEY')
     DEBUG = False
     TESTING = False
 
@@ -54,17 +59,13 @@ class ProductionConfig(Config):
     """Production environment configuration."""
 
     DEBUG = False
-    SECRET_KEY = os.environ.get('SECRET_KEY', None)
     LOG_LEVEL = 'WARNING'
-
-    def __init__(self):
-        if self.SECRET_KEY is None:
-            raise ValueError("SECRET_KEY environment variable must be set in production")
 
 
 class TestingConfig(Config):
     """Testing environment configuration."""
 
+    SECRET_KEY = 'testing-secret-key-not-for-production'
     TESTING = True
     DEBUG = True
     DATABASE_URI = os.path.join(BASE_DIR, 'test_riskmodel.db')

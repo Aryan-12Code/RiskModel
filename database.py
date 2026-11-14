@@ -62,6 +62,14 @@ def create_tables(db_path: str) -> None:
                 shap_values TEXT
             )
         """)
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS users (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                username TEXT NOT NULL UNIQUE,
+                password_hash TEXT NOT NULL,
+                role TEXT NOT NULL DEFAULT 'analyst'
+            )
+        """)
         conn.commit()
         logger.info("Database tables created / verified at %s", db_path)
     except sqlite3.Error as exc:

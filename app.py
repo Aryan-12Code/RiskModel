@@ -73,6 +73,14 @@ def create_app(config_name: Optional[str] = None) -> Flask:
     config_class = config_by_name.get(config_name, config_by_name['default'])
     app.config.from_object(config_class)
 
+    # Require SECRET_KEY outside of testing
+    if not app.config.get('TESTING') and not app.config.get('SECRET_KEY'):
+        raise RuntimeError(
+            "SECRET_KEY is not set. Set the SECRET_KEY environment variable "
+            "or add it to your .env file. Generate one with: "
+            "python -c \"import secrets; print(secrets.token_hex(32))\""
+        )
+
     # Logging
     _setup_logging(app)
     app.logger.info("Starting RiskModel app with '%s' configuration", config_name)

@@ -15,8 +15,18 @@ def client():
     """Create a Flask test client."""
     from app import create_app
 
-    app = create_app()
+    app = create_app('testing')
     app.config['TESTING'] = True
+
+    # Ensure users table exists and seed a test user
+    from database import create_tables
+    create_tables(app.config['DATABASE_URI'])
+    from auth import create_user
+    try:
+        create_user(app.config['DATABASE_URI'], 'admin', 'admin123', 'admin')
+    except ValueError:
+        pass  # user already exists from a prior fixture invocation
+
     with app.test_client() as client:
         yield client
 

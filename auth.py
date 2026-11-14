@@ -2,33 +2,74 @@
 Authentication module for the RiskModel API.
 
 Provides JWT-based authentication with role-based access control.
-Uses an in-memory user store for demonstration purposes.
+Users are stored in the SQLite database with passwords hashed via werkzeug.
 """
 
 import datetime
 import functools
-import hashlib
 import logging
-import os
-from typing import Any, Callable, Dict, Optional, Tuple
+from typing import Any, Callable, Dict, Optional
 
 import jwt
 from flask import Blueprint, current_app, jsonify, request
+from werkzeug.security import check_password_hash, generate_password_hash
+
+from database import get_connection
 
 logger = logging.getLogger(__name__)
 
 auth_bp = Blueprint('auth', __name__, url_prefix='/api/auth')
 
-# ---------------------------------------------------------------------------
-# In-memory user store (demo only — replace with a database in production)
-# ---------------------------------------------------------------------------
-# Passwords are stored as SHA-256 hex digests.
-_hash = lambda pw: hashlib.sha256(pw.encode()).hexdigest()  # noqa: E731
 
-USERS: Dict[str, Dict[str, str]] = {
-    "admin": {"password": _hash("admin123"), "role": "admin"},
-    "analyst": {"password": _hash("analyst123"), "role": "analyst"},
-}
+# ---------------------------------------------------------------------------
+# User management helpers
+# ---------------------------------------------------------------------------
+
+def create_user(db_path: str, username: str, password: str, role: str = 'analyst') -> None:
+    """
+    Create a new user in the database.
+
+    Args:
+        db_path: Path to the SQLite database.
+        username: Unique username.
+        password: Plaintext password (will be hashed before storage).
+        role: User role ('admin' or 'analyst').
+
+    Raises:
+        ValueError: If the username already exists or role is invalid.
+    """
+    if role not in ('admin', 'analyst'):
+        raise ValueError(f"Role must be 'admin' or 'analyst', got '{role}'")
+
+    password_hash = generate_password_hash(password)
+    conn = get_connection(db_path)
+    try:
+        conn.execute(
+            "INSERT INTO users (username, password_hash, role) VALUES (?, ?, ?)",
+            (username, password_hash, role),
+        )
+        conn.commit()
+    except Exception as exc:
+        if 'UNIQUE constraint' in str(exc):
+            raise ValueError(f"User '{username}' already exists") from exc
+        raise
+    finally:
+        conn.close()
+
+
+def _get_user(db_path: str, username: str) -> Optional[Dict[str, str]]:
+    """Look up a user by username. Returns dict with password_hash and role, or None."""
+    conn = get_connection(db_path)
+    try:
+        row = conn.execute(
+            "SELECT password_hash, role FROM users WHERE username = ?",
+            (username,),
+        ).fetchone()
+        if row is None:
+            return None
+        return {"password_hash": row["password_hash"], "role": row["role"]}
+    finally:
+        conn.close()
 
 
 # ---------------------------------------------------------------------------
@@ -85,10 +126,11 @@ def login(username: str, password: str) -> Optional[str]:
     Returns:
         JWT token string on success, or None on failure.
     """
-    user = USERS.get(username)
+    db_path = current_app.config['DATABASE_URI']
+    user = _get_user(db_path, username)
     if user is None:
         return None
-    if user["password"] != _hash(password):
+    if not check_password_hash(user["password_hash"], password):
         return None
     return _generate_token(username, user["role"])
 
@@ -178,6 +220,8 @@ def login_route():
             "message": "Invalid username or password",
         }), 401
 
+    db_path = current_app.config['DATABASE_URI']
+    user = _get_user(db_path, body['username'])
     logger.info("User '%s' logged in", body['username'])
     return jsonify({
         "status": "success",
@@ -186,7 +230,7 @@ def login_route():
             "token": token,
             "user": {
                 "username": body['username'],
-                "role": USERS[body['username']]['role']
+                "role": user['role']
             }
         },
         "message": "Login successful",
@@ -232,14 +276,15 @@ def register_route(current_user: Dict[str, str]):
             "message": "Role must be 'admin' or 'analyst'",
         }), 400
 
-    if username in USERS:
+    db_path = current_app.config['DATABASE_URI']
+    if _get_user(db_path, username) is not None:
         return jsonify({
             "status": "error",
             "data": None,
             "message": f"User '{username}' already exists",
         }), 409
 
-    USERS[username] = {"password": _hash(password), "role": role}
+    create_user(db_path, username, password, role)
     logger.info("Admin '%s' registered new user '%s' with role '%s'",
                 current_user['username'], username, role)
 
