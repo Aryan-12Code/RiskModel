@@ -205,18 +205,12 @@ GET /api/model-info
 **Response** `200 OK`
 ```json
 {
-  "model_type": "VotingClassifier (XGBoost + LightGBM)",
+  "model_type": "VotingClassifier",
   "features": ["age", "income", "..."],
-  "training_date": "2024-01-15",
-  "metrics": {
-    "accuracy": 0.87,
-    "precision": 0.83,
-    "recall": 0.79,
-    "f1_score": 0.81,
-    "roc_auc": 0.91
-  }
+  "metrics": "<real metrics loaded from reports/metrics.json>"
 }
 ```
+*Note: Real held-out test metrics are written to `reports/metrics.json` after running `train_model.py`. If the metrics file does not exist, `metrics` is `null`.*
 
 ### Authentication
 ```http

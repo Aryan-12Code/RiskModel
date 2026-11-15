@@ -291,19 +291,14 @@ def model_info():
         except AttributeError:
             features = None
 
-    # Try to read saved metrics from reports/
+    # Read saved metrics from METRICS_PATH
     metrics = None
-    report_path = os.path.join(
-        os.path.dirname(current_app.config['MODEL_PATH']),
-        '..', 'reports', 'model_evaluation.txt'
-    )
-    if os.path.isfile(report_path):
-        try:
-            with open(report_path, 'r') as fh:
-                metrics = fh.read()
-        except Exception:
-            pass
+    metrics_path = current_app.config.get('METRICS_PATH')
+    if metrics_path and os.path.isfile(metrics_path):
+        with open(metrics_path, 'r') as fh:
+            metrics = json.load(fh)
 
+    message = "Model info retrieved" if metrics is not None else "Model info retrieved; metrics file not found"
     return jsonify({
         "status": "success",
         "data": {
@@ -314,7 +309,7 @@ def model_info():
         "model_type": model_type,
         "features": features,
         "metrics": metrics,
-        "message": "Model info retrieved",
+        "message": message,
     }), 200
 
 
@@ -382,27 +377,42 @@ def prediction_stats(current_user: Dict[str, str]):
     from database import get_prediction_stats
     try:
         stats = get_prediction_stats(db_path)
-        # Add friendly defaults for empty DB
-        total = stats.get('total_predictions') or 0
-        avg_score = stats.get('avg_risk_score') or 0.28
-        level_counts = stats.get('risk_level_counts') or {}
-        high_cnt = level_counts.get('high', 0)
-        high_pct = (high_cnt / total * 100) if total > 0 else 18.3
-        return jsonify({
-            "status": "success",
-            "total_predictions": total,
-            "average_risk_score": avg_score,
-            "high_risk_percentage": high_pct,
-            "model_accuracy": 94.7,
-            "data": stats,
-            "message": "Prediction stats retrieved"
-        }), 200
     except Exception as exc:
         logger.error("Error retrieving prediction stats: %s", exc)
         return jsonify({
-            "total_predictions": 1247,
-            "average_risk_score": 0.34,
-            "high_risk_percentage": 18.3,
-            "model_accuracy": 94.7
-        }), 200
+            "status": "error",
+            "message": str(exc)
+        }), 500
+
+    metrics_path = current_app.config.get('METRICS_PATH')
+    model_accuracy = None
+    if metrics_path and os.path.isfile(metrics_path):
+        with open(metrics_path, 'r') as fh:
+            metrics_data = json.load(fh)
+            if isinstance(metrics_data, dict):
+                ensemble_metrics = metrics_data.get('ensemble')
+                if isinstance(ensemble_metrics, dict) and 'accuracy' in ensemble_metrics:
+                    model_accuracy = ensemble_metrics['accuracy']
+                elif 'accuracy' in metrics_data:
+                    model_accuracy = metrics_data['accuracy']
+
+    total = stats.get('total_predictions') or 0
+    if total > 0:
+        avg_score = stats.get('avg_risk_score')
+        level_counts = stats.get('risk_level_counts') or {}
+        high_cnt = level_counts.get('high', 0)
+        high_pct = (high_cnt / total * 100)
+    else:
+        avg_score = None
+        high_pct = None
+
+    return jsonify({
+        "status": "success",
+        "total_predictions": total,
+        "average_risk_score": avg_score,
+        "high_risk_percentage": high_pct,
+        "model_accuracy": model_accuracy,
+        "data": stats,
+        "message": "Prediction stats retrieved"
+    }), 200
 

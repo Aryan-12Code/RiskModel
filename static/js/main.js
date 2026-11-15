@@ -264,16 +264,29 @@ function renderShapChart(shapData) {
     const canvas = document.getElementById('shapChart');
     if (!canvas) return;
 
+    if (shapChartInstance) {
+        shapChartInstance.destroy();
+        shapChartInstance = null;
+    }
+
+    let msgEl = document.getElementById('shapUnavailableMsg');
+
     if (!shapData || Object.keys(shapData).length === 0) {
-        // Fallback demo SHAP values if server returns empty
-        shapData = {
-            "Debt-to-Income": 0.28,
-            "Late Payments": 0.22,
-            "Interest Rate": 0.15,
-            "Credit Score": -0.31,
-            "Income": -0.18,
-            "Employment Length": -0.09
-        };
+        canvas.style.display = 'none';
+        if (!msgEl) {
+            msgEl = document.createElement('div');
+            msgEl.id = 'shapUnavailableMsg';
+            msgEl.className = 'text-center text-muted py-4';
+            canvas.parentElement.appendChild(msgEl);
+        }
+        msgEl.textContent = 'SHAP explanation not available';
+        msgEl.style.display = 'block';
+        return;
+    }
+
+    canvas.style.display = 'block';
+    if (msgEl) {
+        msgEl.style.display = 'none';
     }
 
     const sortedEntries = Object.entries(shapData)
@@ -283,10 +296,6 @@ function renderShapChart(shapData) {
     const labels = sortedEntries.map(e => e[0]);
     const values = sortedEntries.map(e => e[1]);
     const colors = values.map(v => v >= 0 ? '#e94560' : '#10b981');
-
-    if (shapChartInstance) {
-        shapChartInstance.destroy();
-    }
 
     const ctx = canvas.getContext('2d');
     shapChartInstance = new Chart(ctx, {
@@ -393,6 +402,8 @@ async function initHistoryPage() {
 }
 
 async function loadPredictionHistory() {
+    const tbody = document.getElementById('historyTableBody');
+    const counter = document.getElementById('historyCount');
     try {
         const token = sessionStorage.getItem('rm_token');
         const headers = token ? { 'Authorization': 'Bearer ' + token } : {};
@@ -405,27 +416,63 @@ async function loadPredictionHistory() {
 
         if (response.ok) {
             const data = await response.json();
-            if (data.status === 'success' && Array.isArray(data.data) && data.data.length > 0) {
+            if (data.status === 'success' && Array.isArray(data.data)) {
                 allHistoryRecords = data.data;
-                renderHistoryRows(allHistoryRecords);
+                if (allHistoryRecords.length === 0) {
+                    if (tbody) tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted py-4">No predictions yet</td></tr>';
+                    if (counter) counter.textContent = 'Showing 0 records';
+                } else {
+                    renderHistoryRows(allHistoryRecords);
+                }
                 return;
             }
         }
+        if (tbody) tbody.innerHTML = '<tr><td colspan="5" class="text-center text-danger py-4">Failed to load prediction history.</td></tr>';
+        if (counter) counter.textContent = '';
     } catch (e) {
-        console.warn('History API not reachable, retaining fallback table');
+        if (tbody) tbody.innerHTML = '<tr><td colspan="5" class="text-center text-danger py-4">Failed to load prediction history.</td></tr>';
+        if (counter) counter.textContent = '';
     }
 }
 
-function renderHistoryRows(records) {
-    const tbody = document.getElementById('historyTableBody');
-    const counter = document.getElementById('historyCount');
+async function loadRecentPredictions() {
+    const tbody = document.getElementById('recentPredictionsBody');
     if (!tbody) return;
+    try {
+        const token = sessionStorage.getItem('rm_token') || localStorage.getItem('rm_token');
+        const headers = token ? { 'Authorization': 'Bearer ' + token } : {};
+        const response = await fetch('/api/prediction-history?limit=10', { headers });
+
+        if (response.ok) {
+            const data = await response.json();
+            if (data.status === 'success' && Array.isArray(data.data)) {
+                if (data.data.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted py-4">No predictions yet</td></tr>';
+                } else {
+                    renderHistoryRows(data.data, 'recentPredictionsBody');
+                }
+                return;
+            }
+        }
+        tbody.innerHTML = '<tr><td colspan="4" class="text-center text-danger py-4">Failed to load recent predictions.</td></tr>';
+    } catch (e) {
+        tbody.innerHTML = '<tr><td colspan="4" class="text-center text-danger py-4">Failed to load recent predictions.</td></tr>';
+    }
+}
+
+function renderHistoryRows(records, targetTbodyId = 'historyTableBody') {
+    const tbody = document.getElementById(targetTbodyId);
+    if (!tbody) return;
+
+    const isRecent = targetTbodyId === 'recentPredictionsBody';
+    const colSpan = isRecent ? 4 : 5;
+    const counter = !isRecent ? document.getElementById('historyCount') : null;
 
     tbody.innerHTML = '';
     if (counter) counter.textContent = `Showing ${records.length} records`;
 
     if (records.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted py-4">No records found.</td></tr>';
+        tbody.innerHTML = `<tr><td colspan="${colSpan}" class="text-center text-muted py-4">No predictions yet</td></tr>`;
         return;
     }
 
@@ -435,27 +482,39 @@ function renderHistoryRows(records) {
         const level = (row.risk_level || 'low').toLowerCase();
         const badgeClass = level === 'high' ? 'rm-badge-high' : (level === 'medium' ? 'rm-badge-medium' : 'rm-badge-low');
         const summary = row.applicant_summary || formatApplicantSummary(row.input_data);
+        const dateStr = row.timestamp ? (isRecent ? row.timestamp.substring(0, 10) : row.timestamp.substring(0, 16)) : 'Just now';
 
-        tr.innerHTML = `
-            <td>${row.timestamp ? row.timestamp.substring(0, 16) : 'Just now'}</td>
-            <td>${summary}</td>
-            <td><span class="fw-bold">${score}</span></td>
-            <td><span class="badge ${badgeClass}">${level.toUpperCase()}</span></td>
-            <td>
-                <button class="btn btn-sm btn-outline-info view-details-btn" data-index="${idx}">
-                    <i class="bi bi-eye"></i>
-                </button>
-            </td>
-        `;
+        if (isRecent) {
+            tr.innerHTML = `
+                <td>${dateStr}</td>
+                <td>${summary}</td>
+                <td>${score}</td>
+                <td><span class="badge ${badgeClass}">${level.charAt(0).toUpperCase() + level.slice(1)}</span></td>
+            `;
+        } else {
+            tr.innerHTML = `
+                <td>${dateStr}</td>
+                <td>${summary}</td>
+                <td><span class="fw-bold">${score}</span></td>
+                <td><span class="badge ${badgeClass}">${level.toUpperCase()}</span></td>
+                <td>
+                    <button class="btn btn-sm btn-outline-info view-details-btn" data-index="${idx}">
+                        <i class="bi bi-eye"></i>
+                    </button>
+                </td>
+            `;
+        }
         tbody.appendChild(tr);
     });
 
-    document.querySelectorAll('.view-details-btn').forEach(btn => {
-        btn.addEventListener('click', function() {
-            const index = this.getAttribute('data-index');
-            showDetailModal(records[index]);
+    if (!isRecent) {
+        document.querySelectorAll('.view-details-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const index = this.getAttribute('data-index');
+                showDetailModal(records[index]);
+            });
         });
-    });
+    }
 }
 
 function formatApplicantSummary(inputData) {
@@ -552,20 +611,31 @@ async function loadDashboardStats() {
         if (resp.ok) {
             const data = await resp.json();
             const totalEl = document.getElementById('totalPredictions');
-            if (totalEl && data.total_predictions !== undefined) {
-                totalEl.textContent = data.total_predictions.toLocaleString();
+            if (totalEl) {
+                totalEl.textContent = (data.total_predictions !== null && data.total_predictions !== undefined)
+                    ? data.total_predictions.toLocaleString()
+                    : 'n/a';
             }
             const avgEl = document.getElementById('avgRiskScore');
-            if (avgEl && data.average_risk_score !== undefined) {
-                avgEl.textContent = data.average_risk_score.toFixed(2);
+            if (avgEl) {
+                avgEl.textContent = (data.average_risk_score !== null && data.average_risk_score !== undefined)
+                    ? data.average_risk_score.toFixed(2)
+                    : 'n/a';
             }
             const highPctEl = document.getElementById('highRiskPct');
-            if (highPctEl && data.high_risk_percentage !== undefined) {
-                highPctEl.textContent = data.high_risk_percentage.toFixed(1) + '%';
+            if (highPctEl) {
+                highPctEl.textContent = (data.high_risk_percentage !== null && data.high_risk_percentage !== undefined)
+                    ? data.high_risk_percentage.toFixed(1) + '%'
+                    : 'n/a';
             }
             const accEl = document.getElementById('modelAccuracy');
-            if (accEl && data.model_accuracy !== undefined) {
-                accEl.textContent = data.model_accuracy.toFixed(1) + '%';
+            if (accEl) {
+                if (data.model_accuracy !== null && data.model_accuracy !== undefined) {
+                    const accVal = data.model_accuracy <= 1 ? (data.model_accuracy * 100) : data.model_accuracy;
+                    accEl.textContent = accVal.toFixed(1) + '%';
+                } else {
+                    accEl.textContent = 'n/a';
+                }
             }
         }
     } catch (e) {

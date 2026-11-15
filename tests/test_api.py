@@ -176,6 +176,69 @@ class TestPredictionStatsEndpoint:
         response = client.get('/api/prediction-stats', headers=headers)
         assert response.status_code == 200
 
+    def test_prediction_stats_empty_db_returns_zero_and_no_fabricated_numbers(self, client, auth_token, tmp_path):
+        """Empty database returns total_predictions 0 and null averages, no fabricated numbers."""
+        empty_db = str(tmp_path / "empty.db")
+        from database import create_tables
+        create_tables(empty_db)
+        client.application.config['DATABASE_URI'] = empty_db
+        headers = {'Authorization': f'Bearer {auth_token}'}
+
+        response = client.get('/api/prediction-stats', headers=headers)
+        assert response.status_code == 200
+        data = json.loads(response.data)
+        assert data.get('total_predictions') == 0
+        assert data.get('average_risk_score') is None
+        assert data.get('high_risk_percentage') is None
+        fabricated = [1247, 0.34, 0.28, 18.3, 94.7]
+        for val in fabricated:
+            assert data.get('total_predictions') != val
+            assert data.get('average_risk_score') != val
+            assert data.get('high_risk_percentage') != val
+            assert data.get('model_accuracy') != val
+
+    def test_prediction_stats_model_accuracy_matches_file_or_null_if_missing(self, client, auth_token, tmp_path):
+        """model_accuracy equals the file's ensemble accuracy, or null if missing."""
+        headers = {'Authorization': f'Bearer {auth_token}'}
+
+        # Case 1: metrics file exists
+        metrics_file = tmp_path / "metrics.json"
+        metrics_content = {
+            "ensemble": {"accuracy": 0.912},
+            "accuracy": 0.912
+        }
+        metrics_file.write_text(json.dumps(metrics_content))
+        client.application.config['METRICS_PATH'] = str(metrics_file)
+
+        response = client.get('/api/prediction-stats', headers=headers)
+        assert response.status_code == 200
+        data = json.loads(response.data)
+        assert data.get('model_accuracy') == 0.912
+
+        # Case 2: metrics file is missing
+        client.application.config['METRICS_PATH'] = str(tmp_path / "nonexistent.json")
+        response = client.get('/api/prediction-stats', headers=headers)
+        assert response.status_code == 200
+        data = json.loads(response.data)
+        assert data.get('model_accuracy') is None
+
+    def test_prediction_stats_returns_500_on_db_query_failure(self, client, auth_token, monkeypatch):
+        """When database query fails, return 500 and no fake data."""
+        headers = {'Authorization': f'Bearer {auth_token}'}
+        import database
+        def fail_get_stats(db_path):
+            raise Exception("Database query failed")
+        monkeypatch.setattr(database, 'get_prediction_stats', fail_get_stats)
+
+        response = client.get('/api/prediction-stats', headers=headers)
+        assert response.status_code == 500
+        data = json.loads(response.data)
+        for val in [1247, 0.34, 18.3, 94.7]:
+            assert data.get('total_predictions') != val
+            assert data.get('average_risk_score') != val
+            assert data.get('high_risk_percentage') != val
+            assert data.get('model_accuracy') != val
+
 
 class TestModelInfoEndpoint:
     """Tests for the model info endpoint."""
@@ -189,6 +252,43 @@ class TestModelInfoEndpoint:
         if response.status_code == 200:
             data = json.loads(response.data)
             assert 'model_type' in data or 'type' in data
+
+    def test_model_info_returns_accuracy_from_metrics_file(self, client, tmp_path):
+        """/api/model-info returns the same accuracy as the metrics file."""
+        metrics_file = tmp_path / "metrics.json"
+        metrics_content = {
+            "ensemble": {"accuracy": 0.895, "roc_auc": 0.94, "f1": 0.88, "precision": 0.87, "recall": 0.89},
+            "xgboost": {"accuracy": 0.88, "roc_auc": 0.93, "f1": 0.86, "precision": 0.85, "recall": 0.87},
+            "lightgbm": {"accuracy": 0.87, "roc_auc": 0.92, "f1": 0.85, "precision": 0.84, "recall": 0.86},
+            "accuracy": 0.895,
+            "n_train": 800,
+            "n_test": 200,
+            "trained_at": "2026-11-15T00:00:00Z"
+        }
+        metrics_file.write_text(json.dumps(metrics_content))
+        client.application.config['METRICS_PATH'] = str(metrics_file)
+
+        response = client.get('/api/model-info')
+        assert response.status_code == 200
+        data = json.loads(response.data)
+        metrics = data.get('metrics') or (data.get('data') and data['data'].get('metrics'))
+        assert metrics is not None
+        assert isinstance(metrics, dict)
+        acc = metrics.get('ensemble', {}).get('accuracy') or metrics.get('accuracy')
+        assert acc == 0.895
+
+    def test_model_info_returns_null_metrics_when_file_missing(self, client, tmp_path):
+        """/api/model-info returns metrics null (not invented numbers) when the file is missing."""
+        missing_file = tmp_path / "nonexistent_metrics.json"
+        client.application.config['METRICS_PATH'] = str(missing_file)
+
+        response = client.get('/api/model-info')
+        assert response.status_code == 200
+        data = json.loads(response.data)
+        metrics = data.get('metrics')
+        data_metrics = data.get('data', {}).get('metrics') if data.get('data') else None
+        assert metrics is None
+        assert data_metrics is None
 
 
 class TestAuthEndpoint:
@@ -231,4 +331,37 @@ class TestLoginRoute:
         html = response.get_data(as_text=True)
         assert 'name="username"' in html
         assert 'name="password"' in html
+
+    def test_get_login_does_not_contain_admin123(self, client):
+        """GET /login does not contain 'admin123'."""
+        response = client.get('/login')
+        assert response.status_code == 200
+        html = response.get_data(as_text=True)
+        assert 'admin123' not in html
+
+
+class TestPagePlaceholderData:
+    """Tests ensuring placeholder dates are not rendered in HTML templates."""
+
+    def test_history_page_does_not_contain_placeholder_dates(self, client):
+        """GET /history does not contain placeholder dates 2026-11-08 to 2026-11-12."""
+        response = client.get('/history')
+        assert response.status_code == 200
+        html = response.get_data(as_text=True)
+        placeholder_dates = [
+            '2026-11-08', '2026-11-09', '2026-11-10', '2026-11-11', '2026-11-12'
+        ]
+        for dt in placeholder_dates:
+            assert dt not in html
+
+    def test_index_page_does_not_contain_placeholder_dates(self, client):
+        """GET / does not contain placeholder dates 2026-11-08 to 2026-11-12."""
+        response = client.get('/')
+        assert response.status_code == 200
+        html = response.get_data(as_text=True)
+        placeholder_dates = [
+            '2026-11-08', '2026-11-09', '2026-11-10', '2026-11-11', '2026-11-12'
+        ]
+        for dt in placeholder_dates:
+            assert dt not in html
 

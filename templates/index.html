@@ -33,7 +33,7 @@
                     <div class="rm-stat-icon mb-3">
                         <i class="bi bi-bar-chart-line-fill"></i>
                     </div>
-                    <h2 class="rm-stat-number" id="totalPredictions">1,247</h2>
+                    <h2 class="rm-stat-number" id="totalPredictions">n/a</h2>
                     <p class="text-muted mb-0">Total Predictions</p>
                 </div>
             </div>
@@ -44,7 +44,7 @@
                     <div class="rm-stat-icon mb-3">
                         <i class="bi bi-speedometer"></i>
                     </div>
-                    <h2 class="rm-stat-number" id="avgRiskScore">0.34</h2>
+                    <h2 class="rm-stat-number" id="avgRiskScore">n/a</h2>
                     <p class="text-muted mb-0">Average Risk Score</p>
                 </div>
             </div>
@@ -55,7 +55,7 @@
                     <div class="rm-stat-icon rm-stat-icon-danger mb-3">
                         <i class="bi bi-exclamation-triangle-fill"></i>
                     </div>
-                    <h2 class="rm-stat-number text-danger" id="highRiskPct">18.3%</h2>
+                    <h2 class="rm-stat-number text-danger" id="highRiskPct">n/a</h2>
                     <p class="text-muted mb-0">High Risk %</p>
                 </div>
             </div>
@@ -66,7 +66,7 @@
                     <div class="rm-stat-icon rm-stat-icon-success mb-3">
                         <i class="bi bi-bullseye"></i>
                     </div>
-                    <h2 class="rm-stat-number text-success" id="modelAccuracy">94.7%</h2>
+                    <h2 class="rm-stat-number text-success" id="modelAccuracy">n/a</h2>
                     <p class="text-muted mb-0">Model Accuracy</p>
                 </div>
             </div>
@@ -109,68 +109,7 @@
                                     <th>Risk Level</th>
                                 </tr>
                             </thead>
-                            <tbody id="recentPredictionsBody">
-                                <tr>
-                                    <td>2026-11-12</td>
-                                    <td>Age 35, Income $72K</td>
-                                    <td>0.23</td>
-                                    <td><span class="badge rm-badge-low">Low</span></td>
-                                </tr>
-                                <tr>
-                                    <td>2026-11-12</td>
-                                    <td>Age 28, Income $45K</td>
-                                    <td>0.67</td>
-                                    <td><span class="badge rm-badge-high">High</span></td>
-                                </tr>
-                                <tr>
-                                    <td>2026-11-11</td>
-                                    <td>Age 42, Income $95K</td>
-                                    <td>0.15</td>
-                                    <td><span class="badge rm-badge-low">Low</span></td>
-                                </tr>
-                                <tr>
-                                    <td>2026-11-11</td>
-                                    <td>Age 31, Income $52K</td>
-                                    <td>0.51</td>
-                                    <td><span class="badge rm-badge-medium">Medium</span></td>
-                                </tr>
-                                <tr>
-                                    <td>2026-11-10</td>
-                                    <td>Age 55, Income $110K</td>
-                                    <td>0.12</td>
-                                    <td><span class="badge rm-badge-low">Low</span></td>
-                                </tr>
-                                <tr>
-                                    <td>2026-11-10</td>
-                                    <td>Age 24, Income $32K</td>
-                                    <td>0.78</td>
-                                    <td><span class="badge rm-badge-high">High</span></td>
-                                </tr>
-                                <tr>
-                                    <td>2026-11-09</td>
-                                    <td>Age 38, Income $68K</td>
-                                    <td>0.41</td>
-                                    <td><span class="badge rm-badge-medium">Medium</span></td>
-                                </tr>
-                                <tr>
-                                    <td>2026-11-09</td>
-                                    <td>Age 47, Income $88K</td>
-                                    <td>0.19</td>
-                                    <td><span class="badge rm-badge-low">Low</span></td>
-                                </tr>
-                                <tr>
-                                    <td>2026-11-08</td>
-                                    <td>Age 29, Income $41K</td>
-                                    <td>0.62</td>
-                                    <td><span class="badge rm-badge-high">High</span></td>
-                                </tr>
-                                <tr>
-                                    <td>2026-11-08</td>
-                                    <td>Age 33, Income $58K</td>
-                                    <td>0.35</td>
-                                    <td><span class="badge rm-badge-medium">Medium</span></td>
-                                </tr>
-                            </tbody>
+                            <tbody id="recentPredictionsBody"></tbody>
                         </table>
                     </div>
                 </div>
@@ -182,16 +121,18 @@
 
 {% block scripts %}
 <script>
+let riskChart = null;
+
 document.addEventListener('DOMContentLoaded', function() {
     // Risk Distribution Doughnut Chart
     const ctx = document.getElementById('riskDistributionChart');
     if (ctx) {
-        new Chart(ctx, {
+        riskChart = new Chart(ctx, {
             type: 'doughnut',
             data: {
                 labels: ['Low Risk', 'Medium Risk', 'High Risk'],
                 datasets: [{
-                    data: [58, 24, 18],
+                    data: [0, 0, 0],
                     backgroundColor: ['#28a745', '#ffc107', '#e94560'],
                     borderColor: ['#1e7e34', '#d39e00', '#c0392b'],
                     borderWidth: 2
@@ -212,30 +153,57 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Try loading live stats from API
     loadDashboardStats();
+    if (typeof loadRecentPredictions === 'function') {
+        loadRecentPredictions();
+    }
 });
 
 async function loadDashboardStats() {
     try {
-        const token = localStorage.getItem('rm_token');
+        const token = sessionStorage.getItem('rm_token') || localStorage.getItem('rm_token');
         const headers = token ? { 'Authorization': 'Bearer ' + token } : {};
         const resp = await fetch('/api/prediction-stats', { headers });
         if (resp.ok) {
             const data = await resp.json();
-            if (data.total_predictions !== undefined) {
-                document.getElementById('totalPredictions').textContent = data.total_predictions.toLocaleString();
+            const totalEl = document.getElementById('totalPredictions');
+            if (totalEl) {
+                totalEl.textContent = (data.total_predictions !== null && data.total_predictions !== undefined)
+                    ? data.total_predictions.toLocaleString()
+                    : 'n/a';
             }
-            if (data.average_risk_score !== undefined) {
-                document.getElementById('avgRiskScore').textContent = data.average_risk_score.toFixed(2);
+            const avgEl = document.getElementById('avgRiskScore');
+            if (avgEl) {
+                avgEl.textContent = (data.average_risk_score !== null && data.average_risk_score !== undefined)
+                    ? data.average_risk_score.toFixed(2)
+                    : 'n/a';
             }
-            if (data.high_risk_percentage !== undefined) {
-                document.getElementById('highRiskPct').textContent = data.high_risk_percentage.toFixed(1) + '%';
+            const highPctEl = document.getElementById('highRiskPct');
+            if (highPctEl) {
+                highPctEl.textContent = (data.high_risk_percentage !== null && data.high_risk_percentage !== undefined)
+                    ? data.high_risk_percentage.toFixed(1) + '%'
+                    : 'n/a';
             }
-            if (data.model_accuracy !== undefined) {
-                document.getElementById('modelAccuracy').textContent = data.model_accuracy.toFixed(1) + '%';
+            const accEl = document.getElementById('modelAccuracy');
+            if (accEl) {
+                if (data.model_accuracy !== null && data.model_accuracy !== undefined) {
+                    const accVal = data.model_accuracy <= 1 ? (data.model_accuracy * 100) : data.model_accuracy;
+                    accEl.textContent = accVal.toFixed(1) + '%';
+                } else {
+                    accEl.textContent = 'n/a';
+                }
+            }
+
+            const counts = (data.data && data.data.risk_level_counts) || {};
+            if (riskChart) {
+                const low = counts.low || 0;
+                const med = counts.medium || 0;
+                const high = counts.high || 0;
+                riskChart.data.datasets[0].data = [low, med, high];
+                riskChart.update();
             }
         }
     } catch (e) {
-        // Use placeholder values if API not available
+        // Leave values as n/a if API not available
     }
 }
 </script>

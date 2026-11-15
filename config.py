@@ -33,6 +33,10 @@ class Config:
     MODEL_PATH = os.path.join(BASE_DIR, 'models', 'ensemble_model.pkl')
     PREPROCESSOR_PATH = os.path.join(BASE_DIR, 'models', 'preprocessor.pkl')
     SHAP_DIR = os.path.join(BASE_DIR, 'static', 'shap')
+    METRICS_PATH = os.environ.get(
+        'METRICS_PATH',
+        os.path.join(BASE_DIR, 'reports', 'metrics.json')
+    )
 
     # MLflow
     MLFLOW_TRACKING_URI = os.environ.get(
@@ -69,6 +73,7 @@ class TestingConfig(Config):
     TESTING = True
     DEBUG = True
     DATABASE_URI = os.path.join(BASE_DIR, 'test_riskmodel.db')
+    METRICS_PATH = os.path.join(BASE_DIR, 'reports', 'test_metrics.json')
     LOG_LEVEL = 'DEBUG'
 
 

@@ -12,6 +12,8 @@ import os
 import sys
 import logging
 import time
+import json
+from datetime import datetime, timezone
 
 import numpy as np
 
@@ -125,6 +127,47 @@ def main():
             f.write("\n")
     logger.info(f"  Evaluation report saved to {report_path}")
 
+    # Save metrics JSON
+    metrics_json_path = os.path.join('reports', 'metrics.json')
+    metrics_data = {
+        "xgboost": {
+            "accuracy": results["XGBoost"]["accuracy"],
+            "roc_auc": results["XGBoost"]["roc_auc"],
+            "f1": results["XGBoost"]["f1_score"],
+            "f1_score": results["XGBoost"]["f1_score"],
+            "precision": results["XGBoost"]["precision"],
+            "recall": results["XGBoost"]["recall"],
+        },
+        "lightgbm": {
+            "accuracy": results["LightGBM"]["accuracy"],
+            "roc_auc": results["LightGBM"]["roc_auc"],
+            "f1": results["LightGBM"]["f1_score"],
+            "f1_score": results["LightGBM"]["f1_score"],
+            "precision": results["LightGBM"]["precision"],
+            "recall": results["LightGBM"]["recall"],
+        },
+        "ensemble": {
+            "accuracy": results["Ensemble"]["accuracy"],
+            "roc_auc": results["Ensemble"]["roc_auc"],
+            "f1": results["Ensemble"]["f1_score"],
+            "f1_score": results["Ensemble"]["f1_score"],
+            "precision": results["Ensemble"]["precision"],
+            "recall": results["Ensemble"]["recall"],
+        },
+        "accuracy": results["Ensemble"]["accuracy"],
+        "roc_auc": results["Ensemble"]["roc_auc"],
+        "f1": results["Ensemble"]["f1_score"],
+        "f1_score": results["Ensemble"]["f1_score"],
+        "precision": results["Ensemble"]["precision"],
+        "recall": results["Ensemble"]["recall"],
+        "n_train": int(X_train.shape[0]),
+        "n_test": int(X_test.shape[0]),
+        "trained_at": datetime.now(timezone.utc).isoformat(),
+    }
+    with open(metrics_json_path, 'w') as f:
+        json.dump(metrics_data, f, indent=2)
+    logger.info(f"  Metrics JSON saved to {metrics_json_path}")
+
     # ------------------------------------------------------------------
     # Step 5: SHAP explainability
     # ------------------------------------------------------------------
@@ -158,6 +201,7 @@ def main():
     logger.info(f"    - models/lightgbm_model.pkl")
     logger.info(f"    - models/preprocessor.pkl")
     logger.info(f"    - reports/model_evaluation.txt")
+    logger.info(f"    - reports/metrics.json")
     logger.info(f"    - static/shap/ (plots)")
     logger.info("=" * 60)
 
