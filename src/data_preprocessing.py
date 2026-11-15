@@ -158,6 +158,7 @@ def preprocess_data(
     test_size: float = 0.2,
     random_state: int = 42,
     save_preprocessor: bool = True,
+    apply_smote: bool = True,
 ) -> tuple:
     """Run the full preprocessing pipeline.
 
@@ -166,7 +167,7 @@ def preprocess_data(
         2. Separate features / target.
         3. Build and fit ColumnTransformer (impute, scale, encode).
         4. Train/test split (stratified).
-        5. Apply SMOTE on training set.
+        5. Apply SMOTE on training set (optional).
         6. Optionally save the preprocessor to disk.
 
     Args:
@@ -174,6 +175,7 @@ def preprocess_data(
         test_size: Fraction of data reserved for testing.
         random_state: Seed for reproducibility.
         save_preprocessor: Whether to persist the preprocessor as a pickle.
+        apply_smote: Whether to apply SMOTE balancing to the training set.
 
     Returns:
         Tuple of (X_train, X_test, y_train, y_test, preprocessor).
@@ -205,23 +207,24 @@ def preprocess_data(
     X_test = preprocessor.transform(X_test_raw)
 
     # 5. SMOTE on training set (with fallback balancing)
-    if HAS_SMOTE:
-        smote = SMOTE(random_state=random_state)
-        X_train, y_train = smote.fit_resample(X_train, y_train)
-    else:
-        y_train_arr = np.array(y_train)
-        idx_0 = np.where(y_train_arr == 0)[0]
-        idx_1 = np.where(y_train_arr == 1)[0]
-        if len(idx_1) > 0 and len(idx_0) > len(idx_1):
-            extra_idx = np.random.choice(idx_1, size=(len(idx_0) - len(idx_1)), replace=True)
-            all_idx = np.concatenate([np.arange(len(y_train_arr)), extra_idx])
-            X_train = X_train[all_idx]
-            y_train = y_train_arr[all_idx]
-    logger.info(
-        "After class balancing: %d training samples (class balance: %s)",
-        len(X_train),
-        dict(pd.Series(y_train).value_counts()),
-    )
+    if apply_smote:
+        if HAS_SMOTE:
+            smote = SMOTE(random_state=random_state)
+            X_train, y_train = smote.fit_resample(X_train, y_train)
+        else:
+            y_train_arr = np.array(y_train)
+            idx_0 = np.where(y_train_arr == 0)[0]
+            idx_1 = np.where(y_train_arr == 1)[0]
+            if len(idx_1) > 0 and len(idx_0) > len(idx_1):
+                extra_idx = np.random.choice(idx_1, size=(len(idx_0) - len(idx_1)), replace=True)
+                all_idx = np.concatenate([np.arange(len(y_train_arr)), extra_idx])
+                X_train = X_train[all_idx]
+                y_train = y_train_arr[all_idx]
+        logger.info(
+            "After class balancing: %d training samples (class balance: %s)",
+            len(X_train),
+            dict(pd.Series(y_train).value_counts()),
+        )
 
     # 6. Save preprocessor
     if save_preprocessor:

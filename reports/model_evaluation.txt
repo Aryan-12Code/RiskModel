@@ -4,57 +4,60 @@ RiskModel — Model Evaluation Report
 Model: XGBoost
 ------------------------------
   model_name: XGBoost
-  accuracy: 0.8170
-  precision: 0.5891
-  recall: 0.3689
-  f1_score: 0.4537
-  roc_auc: 0.7550
+  accuracy: 0.7820
+  precision: 0.4722
+  recall: 0.4951
+  f1_score: 0.4834
+  roc_auc: 0.7506
 
               precision    recall  f1-score   support
 
-           0       0.85      0.93      0.89       794
-           1       0.59      0.37      0.45       206
+           0       0.87      0.86      0.86       794
+           1       0.47      0.50      0.48       206
 
-    accuracy                           0.82      1000
-   macro avg       0.72      0.65      0.67      1000
-weighted avg       0.80      0.82      0.80      1000
+    accuracy                           0.78      1000
+   macro avg       0.67      0.68      0.67      1000
+weighted avg       0.79      0.78      0.78      1000
 
+  cv_roc_auc: 0.7441
 
 Model: LightGBM
 ------------------------------
   model_name: LightGBM
-  accuracy: 0.8160
-  precision: 0.5873
-  recall: 0.3592
-  f1_score: 0.4458
-  roc_auc: 0.7529
+  accuracy: 0.8140
+  precision: 0.5617
+  recall: 0.4417
+  f1_score: 0.4946
+  roc_auc: 0.7605
 
               precision    recall  f1-score   support
 
-           0       0.85      0.93      0.89       794
-           1       0.59      0.36      0.45       206
+           0       0.86      0.91      0.89       794
+           1       0.56      0.44      0.49       206
 
-    accuracy                           0.82      1000
-   macro avg       0.72      0.65      0.67      1000
-weighted avg       0.80      0.82      0.80      1000
+    accuracy                           0.81      1000
+   macro avg       0.71      0.68      0.69      1000
+weighted avg       0.80      0.81      0.81      1000
 
+  cv_roc_auc: 0.7426
 
 Model: Ensemble
 ------------------------------
   model_name: Ensemble
-  accuracy: 0.8150
-  precision: 0.5814
-  recall: 0.3641
-  f1_score: 0.4478
-  roc_auc: 0.7561
+  accuracy: 0.7980
+  precision: 0.5106
+  recall: 0.4660
+  f1_score: 0.4873
+  roc_auc: 0.7573
 
               precision    recall  f1-score   support
 
-           0       0.85      0.93      0.89       794
-           1       0.58      0.36      0.45       206
+           0       0.86      0.88      0.87       794
+           1       0.51      0.47      0.49       206
 
-    accuracy                           0.81      1000
-   macro avg       0.72      0.65      0.67      1000
-weighted avg       0.79      0.81      0.80      1000
+    accuracy                           0.80      1000
+   macro avg       0.69      0.68      0.68      1000
+weighted avg       0.79      0.80      0.79      1000
 
+  cv_roc_auc: 0.7454
 

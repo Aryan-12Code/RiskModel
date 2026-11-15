@@ -53,7 +53,7 @@ def main():
     df = load_data(data_path)
     logger.info(f"  Loaded {len(df)} rows, {len(df.columns)} columns")
 
-    X_train, X_test, y_train, y_test, preprocessor = preprocess_data(df)
+    X_train, X_test, y_train, y_test, preprocessor = preprocess_data(df, apply_smote=False)
     logger.info(f"  Training set: {X_train.shape}")
     logger.info(f"  Test set:     {X_test.shape}")
     logger.info(f"  Class distribution (train): "
@@ -81,26 +81,53 @@ def main():
     )
 
     logger.info("  Training XGBoost...")
-    xgb_model = train_xgboost(X_train, y_train)
+    xgb_model, xgb_cv_auc, xgb_params = train_xgboost(X_train, y_train)
 
     logger.info("  Training LightGBM...")
-    lgbm_model = train_lightgbm(X_train, y_train)
+    lgbm_model, lgbm_cv_auc, lgbm_params = train_lightgbm(X_train, y_train)
 
     logger.info("  Training Ensemble (soft voting)...")
-    ensemble_model = train_ensemble(X_train, y_train)
+    ensemble_model = train_ensemble(X_train, y_train, xgb_model=xgb_model, lgbm_model=lgbm_model)
+
+    from sklearn.base import clone
+    from sklearn.ensemble import VotingClassifier
+    from sklearn.model_selection import cross_val_score
+    try:
+        from imblearn.pipeline import Pipeline as ImbPipeline
+        from imblearn.over_sampling import SMOTE
+        ens_cv_pipe = ImbPipeline([
+            ('smote', SMOTE(random_state=42)),
+            ('clf', VotingClassifier(
+                [('xgboost', clone(xgb_model)), ('lightgbm', clone(lgbm_model))],
+                voting='soft'
+            ))
+        ])
+        ens_cv_scores = cross_val_score(ens_cv_pipe, X_train, y_train, cv=3, scoring='roc_auc', n_jobs=-1)
+        ens_cv_auc = round(float(np.mean(ens_cv_scores)), 4)
+    except Exception as e:
+        logger.warning("Could not compute ensemble CV score: %s", e)
+        ens_cv_auc = round(float((xgb_cv_auc + lgbm_cv_auc) / 2.0), 4)
 
     # ------------------------------------------------------------------
     # Step 4: Evaluate models
     # ------------------------------------------------------------------
     logger.info("Step 4/5: Evaluating models...")
+    cv_auc_map = {
+        'XGBoost': xgb_cv_auc,
+        'LightGBM': lgbm_cv_auc,
+        'Ensemble': ens_cv_auc,
+    }
     results = {}
     for name, model in [('XGBoost', xgb_model),
                          ('LightGBM', lgbm_model),
                          ('Ensemble', ensemble_model)]:
         metrics = evaluate_model(model, X_test, y_test, name)
+        cv_auc = cv_auc_map[name]
+        metrics['cv_roc_auc'] = cv_auc
         results[name] = metrics
         logger.info(f"  {name}: Accuracy={metrics.get('accuracy', 0):.4f}  "
                      f"ROC-AUC={metrics.get('roc_auc', 0):.4f}  "
+                     f"CV ROC-AUC={cv_auc:.4f}  "
                      f"F1={metrics.get('f1_score', 0):.4f}")
 
     # Save models
@@ -133,6 +160,7 @@ def main():
         "xgboost": {
             "accuracy": results["XGBoost"]["accuracy"],
             "roc_auc": results["XGBoost"]["roc_auc"],
+            "cv_roc_auc": results["XGBoost"]["cv_roc_auc"],
             "f1": results["XGBoost"]["f1_score"],
             "f1_score": results["XGBoost"]["f1_score"],
             "precision": results["XGBoost"]["precision"],
@@ -141,6 +169,7 @@ def main():
         "lightgbm": {
             "accuracy": results["LightGBM"]["accuracy"],
             "roc_auc": results["LightGBM"]["roc_auc"],
+            "cv_roc_auc": results["LightGBM"]["cv_roc_auc"],
             "f1": results["LightGBM"]["f1_score"],
             "f1_score": results["LightGBM"]["f1_score"],
             "precision": results["LightGBM"]["precision"],
@@ -149,6 +178,7 @@ def main():
         "ensemble": {
             "accuracy": results["Ensemble"]["accuracy"],
             "roc_auc": results["Ensemble"]["roc_auc"],
+            "cv_roc_auc": results["Ensemble"]["cv_roc_auc"],
             "f1": results["Ensemble"]["f1_score"],
             "f1_score": results["Ensemble"]["f1_score"],
             "precision": results["Ensemble"]["precision"],
@@ -156,6 +186,7 @@ def main():
         },
         "accuracy": results["Ensemble"]["accuracy"],
         "roc_auc": results["Ensemble"]["roc_auc"],
+        "cv_roc_auc": results["Ensemble"]["cv_roc_auc"],
         "f1": results["Ensemble"]["f1_score"],
         "f1_score": results["Ensemble"]["f1_score"],
         "precision": results["Ensemble"]["precision"],

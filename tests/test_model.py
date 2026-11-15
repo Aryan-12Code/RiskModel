@@ -161,3 +161,65 @@ class TestModelSaveLoad:
         finally:
             if os.path.exists(temp_path):
                 os.remove(temp_path)
+
+
+class TestCVLeakageAndEnsembleFix:
+    """Tests for SMOTE in CV pipeline and ensemble fitting without GridSearchCV."""
+
+    def test_train_ensemble_does_not_call_gridsearch(self, monkeypatch):
+        """Verify train_ensemble does not invoke GridSearchCV."""
+        from src import model_training
+
+        def fail_gridsearch(*args, **kwargs):
+            raise AssertionError("GridSearchCV should not be called by train_ensemble")
+
+        monkeypatch.setattr(model_training, "GridSearchCV", fail_gridsearch)
+
+        X_train, _, y_train, _ = _get_train_data()
+        ensemble = model_training.train_ensemble(X_train, y_train)
+        assert ensemble is not None
+
+    def test_saved_ensemble_estimators_types(self):
+        """Verify saved ensemble has estimators_ of types XGBClassifier and LGBMClassifier."""
+        from src.model_training import train_ensemble
+        from sklearn.pipeline import Pipeline
+        from xgboost import XGBClassifier
+        from lightgbm import LGBMClassifier
+
+        X_train, _, y_train, _ = _get_train_data()
+        ensemble = train_ensemble(X_train, y_train)
+
+        assert hasattr(ensemble, "estimators_")
+        assert len(ensemble.estimators_) == 2
+        for est in ensemble.estimators_:
+            assert not isinstance(est, Pipeline)
+        assert isinstance(ensemble.estimators_[0], XGBClassifier)
+        assert isinstance(ensemble.estimators_[1], LGBMClassifier)
+
+    def test_xgboost_lightgbm_return_non_pipeline_classifier_and_cv_auc(self):
+        """Verify xgboost and lightgbm training functions return a non-Pipeline classifier, CV AUC, and best params."""
+        from src.model_training import train_xgboost, train_lightgbm
+        from sklearn.pipeline import Pipeline
+        from xgboost import XGBClassifier
+        from lightgbm import LGBMClassifier
+
+        X_train, _, y_train, _ = _get_train_data()
+
+        xgb_res = train_xgboost(X_train, y_train)
+        xgb_clf, xgb_cv_auc, xgb_params = xgb_res
+        assert not isinstance(xgb_clf, Pipeline)
+        assert isinstance(xgb_clf, XGBClassifier)
+        assert isinstance(xgb_cv_auc, (float, int))
+        assert 0.0 <= xgb_cv_auc <= 1.0
+        assert isinstance(xgb_params, dict)
+        assert any(k.startswith("clf__") for k in xgb_params)
+
+        lgb_res = train_lightgbm(X_train, y_train)
+        lgb_clf, lgb_cv_auc, lgb_params = lgb_res
+        assert not isinstance(lgb_clf, Pipeline)
+        assert isinstance(lgb_clf, LGBMClassifier)
+        assert isinstance(lgb_cv_auc, (float, int))
+        assert 0.0 <= lgb_cv_auc <= 1.0
+        assert isinstance(lgb_params, dict)
+        assert any(k.startswith("clf__") for k in lgb_params)
+

@@ -13,6 +13,7 @@ import json
 
 import numpy as np
 import pandas as pd
+from sklearn.base import clone
 from sklearn.ensemble import VotingClassifier
 from sklearn.metrics import (
     accuracy_score,
@@ -23,6 +24,12 @@ from sklearn.metrics import (
     roc_auc_score,
 )
 from sklearn.model_selection import GridSearchCV
+try:
+    from imblearn.pipeline import Pipeline as ImbPipeline
+    from imblearn.over_sampling import SMOTE
+    HAS_SMOTE = True
+except ImportError:
+    HAS_SMOTE = False
 try:
     from xgboost import XGBClassifier
     HAS_XGB = True
@@ -52,15 +59,24 @@ logger = logging.getLogger(__name__)
 
 
 # ---------------------------------------------------------------------------
-# Training functions
+# Training results and functions
 # ---------------------------------------------------------------------------
+
+class TrainingResult(tuple):
+    """Tuple containing (clf, cv_roc_auc, best_params) that also delegates attribute access to clf."""
+    def __new__(cls, clf, cv_roc_auc, best_params):
+        return super().__new__(cls, (clf, cv_roc_auc, best_params))
+
+    def __getattr__(self, name):
+        return getattr(self[0], name)
+
 
 def train_xgboost(
     X_train: np.ndarray,
     y_train: np.ndarray,
     random_state: int = 42,
 ):
-    """Train an XGBoost classifier with GridSearchCV hyperparameter tuning.
+    """Train an XGBoost classifier with GridSearchCV hyperparameter tuning and SMOTE in-fold.
 
     Args:
         X_train: Training feature matrix.
@@ -68,7 +84,7 @@ def train_xgboost(
         random_state: Seed for reproducibility.
 
     Returns:
-        Best-fitted XGBClassifier.
+        TrainingResult with (best_estimator_.named_steps['clf'], cv_roc_auc, best_params).
     """
     logger.info("Training XGBoost with GridSearchCV (native=%s)", HAS_XGB)
     if HAS_XGB:
@@ -79,23 +95,35 @@ def train_xgboost(
             verbosity=0,
         )
         param_grid = {
-            "n_estimators": [50, 100],
-            "max_depth": [4, 6],
-            "learning_rate": [0.05, 0.1],
+            "clf__n_estimators": [50, 100],
+            "clf__max_depth": [4, 6],
+            "clf__learning_rate": [0.05, 0.1],
         }
     else:
         base = XGBClassifier(random_state=random_state)
         param_grid = {
-            "max_iter": [50, 100],
-            "max_depth": [4, 6],
-            "learning_rate": [0.05, 0.1],
+            "clf__max_iter": [50, 100],
+            "clf__max_depth": [4, 6],
+            "clf__learning_rate": [0.05, 0.1],
         }
+
+    if HAS_SMOTE:
+        pipe = ImbPipeline([
+            ("smote", SMOTE(random_state=random_state)),
+            ("clf", base),
+        ])
+    else:
+        from sklearn.pipeline import Pipeline
+        pipe = Pipeline([("clf", base)])
+
     grid = GridSearchCV(
-        base, param_grid, scoring="roc_auc", cv=3, n_jobs=-1, verbose=0
+        pipe, param_grid, scoring="roc_auc", cv=3, n_jobs=-1, verbose=0
     )
     grid.fit(X_train, y_train)
     logger.info("Best XGBoost params: %s (AUC=%.4f)", grid.best_params_, grid.best_score_)
-    return grid.best_estimator_
+    best_clf = grid.best_estimator_.named_steps["clf"]
+    best_cv_auc = round(float(grid.best_score_), 4)
+    return TrainingResult(best_clf, best_cv_auc, grid.best_params_)
 
 
 def train_lightgbm(
@@ -103,7 +131,7 @@ def train_lightgbm(
     y_train: np.ndarray,
     random_state: int = 42,
 ):
-    """Train a LightGBM classifier with GridSearchCV hyperparameter tuning.
+    """Train a LightGBM classifier with GridSearchCV hyperparameter tuning and SMOTE in-fold.
 
     Args:
         X_train: Training feature matrix.
@@ -111,7 +139,7 @@ def train_lightgbm(
         random_state: Seed for reproducibility.
 
     Returns:
-        Best-fitted LGBMClassifier.
+        TrainingResult with (best_estimator_.named_steps['clf'], cv_roc_auc, best_params).
     """
     logger.info("Training LightGBM with GridSearchCV (native=%s)", HAS_LGBM)
     if HAS_LGBM:
@@ -120,49 +148,95 @@ def train_lightgbm(
             verbose=-1,
         )
         param_grid = {
-            "n_estimators": [50, 100],
-            "max_depth": [4, 6],
-            "learning_rate": [0.05, 0.1],
+            "clf__n_estimators": [50, 100],
+            "clf__max_depth": [4, 6],
+            "clf__learning_rate": [0.05, 0.1],
         }
     else:
         base = LGBMClassifier(random_state=random_state)
         param_grid = {
-            "n_estimators": [50, 100],
-            "max_depth": [3, 5],
-            "learning_rate": [0.05, 0.1],
+            "clf__n_estimators": [50, 100],
+            "clf__max_depth": [3, 5],
+            "clf__learning_rate": [0.05, 0.1],
         }
+
+    if HAS_SMOTE:
+        pipe = ImbPipeline([
+            ("smote", SMOTE(random_state=random_state)),
+            ("clf", base),
+        ])
+    else:
+        from sklearn.pipeline import Pipeline
+        pipe = Pipeline([("clf", base)])
+
     grid = GridSearchCV(
-        base, param_grid, scoring="roc_auc", cv=3, n_jobs=-1, verbose=0
+        pipe, param_grid, scoring="roc_auc", cv=3, n_jobs=-1, verbose=0
     )
     grid.fit(X_train, y_train)
     logger.info("Best LightGBM params: %s (AUC=%.4f)", grid.best_params_, grid.best_score_)
-    return grid.best_estimator_
+    best_clf = grid.best_estimator_.named_steps["clf"]
+    best_cv_auc = round(float(grid.best_score_), 4)
+    return TrainingResult(best_clf, best_cv_auc, grid.best_params_)
 
 
 def train_ensemble(
     X_train: np.ndarray,
     y_train: np.ndarray,
+    xgb_model=None,
+    lgbm_model=None,
     random_state: int = 42,
 ) -> VotingClassifier:
-    """Train a soft-voting ensemble of XGBoost and LightGBM.
+    """Train a soft-voting ensemble of XGBoost and LightGBM without GridSearchCV.
 
     Args:
         X_train: Training feature matrix.
         y_train: Training target vector.
+        xgb_model: Optional tuned XGBoost classifier to clone.
+        lgbm_model: Optional tuned LightGBM classifier to clone.
         random_state: Seed for reproducibility.
 
     Returns:
-        Fitted VotingClassifier.
+        Fitted VotingClassifier with estimators_ [XGBClassifier, LGBMClassifier].
     """
     logger.info("Training Ensemble (VotingClassifier, soft voting)")
-    xgb = train_xgboost(X_train, y_train, random_state)
-    lgbm = train_lightgbm(X_train, y_train, random_state)
+    if xgb_model is None:
+        if HAS_XGB:
+            xgb_est = XGBClassifier(
+                use_label_encoder=False,
+                eval_metric="logloss",
+                random_state=random_state,
+                verbosity=0,
+            )
+        else:
+            xgb_est = XGBClassifier(random_state=random_state)
+    else:
+        if isinstance(xgb_model, tuple) and hasattr(xgb_model, "__getattr__"):
+            xgb_model = xgb_model[0]
+        xgb_est = clone(xgb_model)
+
+    if lgbm_model is None:
+        if HAS_LGBM:
+            lgbm_est = LGBMClassifier(
+                random_state=random_state,
+                verbose=-1,
+            )
+        else:
+            lgbm_est = LGBMClassifier(random_state=random_state)
+    else:
+        if isinstance(lgbm_model, tuple) and hasattr(lgbm_model, "__getattr__"):
+            lgbm_model = lgbm_model[0]
+        lgbm_est = clone(lgbm_model)
 
     ensemble = VotingClassifier(
-        estimators=[("xgboost", xgb), ("lightgbm", lgbm)],
+        estimators=[("xgboost", xgb_est), ("lightgbm", lgbm_est)],
         voting="soft",
     )
-    ensemble.fit(X_train, y_train)
+    if HAS_SMOTE:
+        smote = SMOTE(random_state=random_state)
+        X_train_res, y_train_res = smote.fit_resample(X_train, y_train)
+    else:
+        X_train_res, y_train_res = X_train, y_train
+    ensemble.fit(X_train_res, y_train_res)
     logger.info("Ensemble training complete")
     return ensemble
 
@@ -226,6 +300,8 @@ def save_model(model, filepath: str) -> None:
     """
     os.makedirs(os.path.dirname(filepath), exist_ok=True)
     import joblib
+    if isinstance(model, tuple) and hasattr(model, "__getattr__"):
+        model = model[0]
     joblib.dump(model, filepath)
     logger.info("Model saved to %s", filepath)
 
