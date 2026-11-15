@@ -49,6 +49,12 @@ mlruns/
 # Model artifacts
 models/*.pkl
 
+# Generated training metrics
+reports/metrics.json
+
+# Generated SHAP plots
+static/shap/*.png
+
 # Generated SHAP plots
 static/shap/*.png
 
