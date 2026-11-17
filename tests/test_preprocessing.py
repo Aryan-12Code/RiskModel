@@ -86,7 +86,7 @@ class TestPreprocessingPipeline:
         from src.data_preprocessing import load_data, preprocess_data
 
         df = load_data(DATA_PATH)
-        X_train, X_test, y_train, y_test, preprocessor = preprocess_data(df)
+        X_train, X_test, y_train, y_test, preprocessor = preprocess_data(df, save_preprocessor=False)
 
         # X and y lengths must match
         assert X_train.shape[0] == y_train.shape[0]
@@ -104,7 +104,7 @@ class TestPreprocessingPipeline:
         from src.data_preprocessing import load_data, preprocess_data
 
         df = load_data(DATA_PATH)
-        X_train, X_test, y_train, y_test, _ = preprocess_data(df)
+        X_train, X_test, y_train, y_test, _ = preprocess_data(df, save_preprocessor=False)
 
         assert not np.any(np.isnan(X_train))
         assert not np.any(np.isnan(X_test))
@@ -114,7 +114,7 @@ class TestPreprocessingPipeline:
         from src.data_preprocessing import load_data, preprocess_data
 
         df = load_data(DATA_PATH)
-        _, _, _, _, preprocessor = preprocess_data(df)
+        _, _, _, _, preprocessor = preprocess_data(df, save_preprocessor=False)
         assert preprocessor is not None
 
 
@@ -127,7 +127,7 @@ class TestClassBalancePreservation:
 
         df = load_data(DATA_PATH)
         original_minority_share = float((df['default'] == 1).mean())
-        X_train, _, y_train, _, _ = preprocess_data(df)
+        X_train, _, y_train, _, _ = preprocess_data(df, save_preprocessor=False)
 
         train_minority_share = float((pd.Series(y_train) == 1).mean())
         assert abs(train_minority_share - original_minority_share) <= 0.02

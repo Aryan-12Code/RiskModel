@@ -79,7 +79,7 @@ def test_preprocess_data_returns_original_class_balance():
     from src.data_preprocessing import load_data, preprocess_data
     df = load_data(DATA_PATH)
     original_minority_share = float((df["default"] == 1).mean())
-    X_train, X_test, y_train, y_test, _ = preprocess_data(df)
+    X_train, X_test, y_train, y_test, _ = preprocess_data(df, save_preprocessor=False)
     train_minority_share = float((pd.Series(y_train) == 1).mean())
     assert abs(train_minority_share - original_minority_share) <= 0.02
 
@@ -99,6 +99,8 @@ def test_train_model_fails_if_shap_fails(monkeypatch, tmp_path):
     monkeypatch.setattr("sklearn.model_selection.cross_val_score", lambda *args, **kwargs: np.array([0.8]))
     monkeypatch.setattr("src.model_training.save_model", lambda *args, **kwargs: None)
     monkeypatch.setattr("joblib.dump", lambda *args, **kwargs: None)
+    from src.data_preprocessing import preprocess_data as real_preprocess
+    monkeypatch.setattr("src.data_preprocessing.preprocess_data", lambda df, *args, **kw: real_preprocess(df, *args, **{**kw, "save_preprocessor": False}))
 
     real_open = open
     def safe_open(file, *args, **kwargs):

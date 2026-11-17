@@ -21,7 +21,7 @@ def _get_train_data():
     from src.data_preprocessing import load_data, preprocess_data
 
     df = load_data(DATA_PATH)
-    X_train, X_test, y_train, y_test, _ = preprocess_data(df)
+    X_train, X_test, y_train, y_test, _ = preprocess_data(df, save_preprocessor=False)
     return X_train, X_test, y_train, y_test
 
 
