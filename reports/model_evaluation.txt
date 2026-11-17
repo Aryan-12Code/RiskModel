@@ -1,4 +1,4 @@
-RiskModel â€” Model Evaluation Report
+RiskModel — Model Evaluation Report
 ==================================================
 
 Model: XGBoost

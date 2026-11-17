@@ -24,25 +24,10 @@ from sklearn.metrics import (
     roc_auc_score,
 )
 from sklearn.model_selection import GridSearchCV
-try:
-    from imblearn.pipeline import Pipeline as ImbPipeline
-    from imblearn.over_sampling import SMOTE
-    HAS_SMOTE = True
-except ImportError:
-    HAS_SMOTE = False
-try:
-    from xgboost import XGBClassifier
-    HAS_XGB = True
-except ImportError:
-    from sklearn.ensemble import HistGradientBoostingClassifier as XGBClassifier
-    HAS_XGB = False
-
-try:
-    from lightgbm import LGBMClassifier
-    HAS_LGBM = True
-except ImportError:
-    from sklearn.ensemble import GradientBoostingClassifier as LGBMClassifier
-    HAS_LGBM = False
+from imblearn.pipeline import Pipeline as ImbPipeline
+from imblearn.over_sampling import SMOTE
+from xgboost import XGBClassifier
+from lightgbm import LGBMClassifier
 
 try:
     import mlflow
@@ -86,35 +71,23 @@ def train_xgboost(
     Returns:
         TrainingResult with (best_estimator_.named_steps['clf'], cv_roc_auc, best_params).
     """
-    logger.info("Training XGBoost with GridSearchCV (native=%s)", HAS_XGB)
-    if HAS_XGB:
-        base = XGBClassifier(
-            use_label_encoder=False,
-            eval_metric="logloss",
-            random_state=random_state,
-            verbosity=0,
-        )
-        param_grid = {
-            "clf__n_estimators": [50, 100],
-            "clf__max_depth": [4, 6],
-            "clf__learning_rate": [0.05, 0.1],
-        }
-    else:
-        base = XGBClassifier(random_state=random_state)
-        param_grid = {
-            "clf__max_iter": [50, 100],
-            "clf__max_depth": [4, 6],
-            "clf__learning_rate": [0.05, 0.1],
-        }
+    logger.info("Training XGBoost with GridSearchCV")
+    base = XGBClassifier(
+        use_label_encoder=False,
+        eval_metric="logloss",
+        random_state=random_state,
+        verbosity=0,
+    )
+    param_grid = {
+        "clf__n_estimators": [50, 100],
+        "clf__max_depth": [4, 6],
+        "clf__learning_rate": [0.05, 0.1],
+    }
 
-    if HAS_SMOTE:
-        pipe = ImbPipeline([
-            ("smote", SMOTE(random_state=random_state)),
-            ("clf", base),
-        ])
-    else:
-        from sklearn.pipeline import Pipeline
-        pipe = Pipeline([("clf", base)])
+    pipe = ImbPipeline([
+        ("smote", SMOTE(random_state=random_state)),
+        ("clf", base),
+    ])
 
     grid = GridSearchCV(
         pipe, param_grid, scoring="roc_auc", cv=3, n_jobs=-1, verbose=0
@@ -141,33 +114,21 @@ def train_lightgbm(
     Returns:
         TrainingResult with (best_estimator_.named_steps['clf'], cv_roc_auc, best_params).
     """
-    logger.info("Training LightGBM with GridSearchCV (native=%s)", HAS_LGBM)
-    if HAS_LGBM:
-        base = LGBMClassifier(
-            random_state=random_state,
-            verbose=-1,
-        )
-        param_grid = {
-            "clf__n_estimators": [50, 100],
-            "clf__max_depth": [4, 6],
-            "clf__learning_rate": [0.05, 0.1],
-        }
-    else:
-        base = LGBMClassifier(random_state=random_state)
-        param_grid = {
-            "clf__n_estimators": [50, 100],
-            "clf__max_depth": [3, 5],
-            "clf__learning_rate": [0.05, 0.1],
-        }
+    logger.info("Training LightGBM with GridSearchCV")
+    base = LGBMClassifier(
+        random_state=random_state,
+        verbose=-1,
+    )
+    param_grid = {
+        "clf__n_estimators": [50, 100],
+        "clf__max_depth": [4, 6],
+        "clf__learning_rate": [0.05, 0.1],
+    }
 
-    if HAS_SMOTE:
-        pipe = ImbPipeline([
-            ("smote", SMOTE(random_state=random_state)),
-            ("clf", base),
-        ])
-    else:
-        from sklearn.pipeline import Pipeline
-        pipe = Pipeline([("clf", base)])
+    pipe = ImbPipeline([
+        ("smote", SMOTE(random_state=random_state)),
+        ("clf", base),
+    ])
 
     grid = GridSearchCV(
         pipe, param_grid, scoring="roc_auc", cv=3, n_jobs=-1, verbose=0
@@ -200,28 +161,22 @@ def train_ensemble(
     """
     logger.info("Training Ensemble (VotingClassifier, soft voting)")
     if xgb_model is None:
-        if HAS_XGB:
-            xgb_est = XGBClassifier(
-                use_label_encoder=False,
-                eval_metric="logloss",
-                random_state=random_state,
-                verbosity=0,
-            )
-        else:
-            xgb_est = XGBClassifier(random_state=random_state)
+        xgb_est = XGBClassifier(
+            use_label_encoder=False,
+            eval_metric="logloss",
+            random_state=random_state,
+            verbosity=0,
+        )
     else:
         if isinstance(xgb_model, tuple) and hasattr(xgb_model, "__getattr__"):
             xgb_model = xgb_model[0]
         xgb_est = clone(xgb_model)
 
     if lgbm_model is None:
-        if HAS_LGBM:
-            lgbm_est = LGBMClassifier(
-                random_state=random_state,
-                verbose=-1,
-            )
-        else:
-            lgbm_est = LGBMClassifier(random_state=random_state)
+        lgbm_est = LGBMClassifier(
+            random_state=random_state,
+            verbose=-1,
+        )
     else:
         if isinstance(lgbm_model, tuple) and hasattr(lgbm_model, "__getattr__"):
             lgbm_model = lgbm_model[0]
@@ -231,11 +186,8 @@ def train_ensemble(
         estimators=[("xgboost", xgb_est), ("lightgbm", lgbm_est)],
         voting="soft",
     )
-    if HAS_SMOTE:
-        smote = SMOTE(random_state=random_state)
-        X_train_res, y_train_res = smote.fit_resample(X_train, y_train)
-    else:
-        X_train_res, y_train_res = X_train, y_train
+    smote = SMOTE(random_state=random_state)
+    X_train_res, y_train_res = smote.fit_resample(X_train, y_train)
     ensemble.fit(X_train_res, y_train_res)
     logger.info("Ensemble training complete")
     return ensemble

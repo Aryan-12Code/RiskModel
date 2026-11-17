@@ -53,7 +53,7 @@ def main():
     df = load_data(data_path)
     logger.info(f"  Loaded {len(df)} rows, {len(df.columns)} columns")
 
-    X_train, X_test, y_train, y_test, preprocessor = preprocess_data(df, apply_smote=False)
+    X_train, X_test, y_train, y_test, preprocessor = preprocess_data(df)
     logger.info(f"  Training set: {X_train.shape}")
     logger.info(f"  Test set:     {X_test.shape}")
     logger.info(f"  Class distribution (train): "
@@ -203,19 +203,15 @@ def main():
     # Step 5: SHAP explainability
     # ------------------------------------------------------------------
     logger.info("Step 5/5: Generating SHAP explainability plots...")
-    try:
-        from src.explainability import generate_shap_plots
+    from src.explainability import generate_shap_plots
 
-        generate_shap_plots(
-            ensemble_model,
-            X_test,
-            feature_names,
-            output_dir='static/shap'
-        )
-        logger.info("  SHAP plots saved to static/shap/")
-    except Exception as e:
-        logger.warning(f"  SHAP plot generation failed: {e}")
-        logger.warning("  Continuing without SHAP plots.")
+    generate_shap_plots(
+        ensemble_model,
+        X_test,
+        feature_names,
+        output_dir='static/shap'
+    )
+    logger.info("  SHAP plots saved to static/shap/")
 
     # ------------------------------------------------------------------
     # Summary

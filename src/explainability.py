@@ -11,11 +11,7 @@ import pickle
 
 import numpy as np
 import pandas as pd
-try:
-    import shap
-    HAS_SHAP = True
-except ImportError:
-    HAS_SHAP = False
+import shap
 import matplotlib
 matplotlib.use("Agg")  # non-interactive backend for server/CI environments
 import matplotlib.pyplot as plt
@@ -45,17 +41,6 @@ def get_shap_values(model, X: np.ndarray) -> np.ndarray:
         target_model = model.estimators_[0]
     elif hasattr(model, "named_estimators_") and "xgboost" in model.named_estimators_:
         target_model = model.named_estimators_["xgboost"]
-
-    if not HAS_SHAP:
-        logger.info("Computing surrogate feature contributions (SHAP library not loaded)")
-        if hasattr(target_model, "feature_importances_"):
-            importances = target_model.feature_importances_
-        else:
-            importances = np.ones(X.shape[1]) / X.shape[1]
-        mean_X = np.mean(X, axis=0)
-        std_X = np.std(X, axis=0) + 1e-6
-        norm_diff = (X - mean_X) / std_X
-        return norm_diff * importances
 
     try:
         explainer = shap.TreeExplainer(target_model)
@@ -122,55 +107,6 @@ def generate_shap_plots(
     # Compute SHAP values
     sv = get_shap_values(model, X_test)
 
-    if not HAS_SHAP:
-        logger.info("Generating explainability plots using matplotlib")
-        mean_abs = np.abs(sv).mean(axis=0)
-        indices = np.argsort(mean_abs)[::-1][:max_display]
-
-        # Summary Plot
-        plt.figure(figsize=(10, 6))
-        plt.barh([feature_names[i] for i in reversed(indices)], [mean_abs[i] for i in reversed(indices)], color='#e94560')
-        plt.xlabel("Mean |Feature Impact| (Risk Contribution)")
-        plt.title("Feature Impact Summary (Explainability)")
-        plt.tight_layout()
-        plt.savefig(os.path.join(output_dir, "shap_summary.png"), dpi=150)
-        plt.close()
-
-        # Bar plot
-        plt.figure(figsize=(10, 6))
-        plt.barh([feature_names[i] for i in reversed(indices)], [mean_abs[i] for i in reversed(indices)], color='#3b82f6')
-        plt.xlabel("Importance")
-        plt.title("Model Feature Importance")
-        plt.tight_layout()
-        plt.savefig(os.path.join(output_dir, "shap_bar.png"), dpi=150)
-        plt.close()
-
-        # Waterfall Plot
-        sample_vals = sv[0][indices]
-        sample_names = [feature_names[i] for i in indices]
-        plt.figure(figsize=(10, 6))
-        colors = ['#e94560' if v >= 0 else '#10b981' for v in sample_vals]
-        plt.barh(sample_names[::-1], sample_vals[::-1], color=colors[::-1])
-        plt.axvline(0, color='grey', linestyle='--', alpha=0.5)
-        plt.xlabel("Impact on Default Risk")
-        plt.title("Sample Prediction Feature Attribution")
-        plt.tight_layout()
-        plt.savefig(os.path.join(output_dir, "shap_waterfall.png"), dpi=150)
-        plt.close()
-
-        # Dependence Plot
-        top_idx = indices[0]
-        plt.figure(figsize=(8, 6))
-        plt.scatter(X_test[:, top_idx], sv[:, top_idx], alpha=0.6, color='#0f3460')
-        plt.xlabel(feature_names[top_idx])
-        plt.ylabel("Risk Contribution Value")
-        plt.title(f"Dependence: {feature_names[top_idx]}")
-        plt.tight_layout()
-        plt.savefig(os.path.join(output_dir, "shap_dependence_top.png"), dpi=150)
-        plt.close()
-
-        logger.info("All explainability plots generated successfully")
-        return
 
     # --- Summary (bee-swarm) plot ---
     plt.figure(figsize=(12, 8))
@@ -191,17 +127,6 @@ def generate_shap_plots(
     logger.info("Saved shap_bar.png")
 
     # --- Waterfall plot for the first test sample ---
-    if not HAS_SHAP:
-        logger.info("Computing surrogate feature contributions (SHAP library not loaded)")
-        if hasattr(target_model, "feature_importances_"):
-            importances = target_model.feature_importances_
-        else:
-            importances = np.ones(X.shape[1]) / X.shape[1]
-        mean_X = np.mean(X, axis=0)
-        std_X = np.std(X, axis=0) + 1e-6
-        norm_diff = (X - mean_X) / std_X
-        return norm_diff * importances
-
     try:
         target_model = model
         if hasattr(model, "estimators_") and len(model.estimators_) > 0:

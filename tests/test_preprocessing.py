@@ -118,23 +118,16 @@ class TestPreprocessingPipeline:
         assert preprocessor is not None
 
 
-class TestSMOTEBalancing:
-    """Tests for SMOTE class balancing."""
+class TestClassBalancePreservation:
+    """Tests for preserving original class balance in preprocessing."""
 
-    def test_smote_balancing_improves_balance(self):
-        """Verify class balance is improved after SMOTE."""
+    def test_preprocessing_preserves_original_class_balance(self):
+        """Verify original class balance is preserved (minority-class share matches original data within 0.02)."""
         from src.data_preprocessing import load_data, preprocess_data
 
         df = load_data(DATA_PATH)
+        original_minority_share = float((df['default'] == 1).mean())
         X_train, _, y_train, _, _ = preprocess_data(df)
 
-        unique, counts = np.unique(y_train, return_counts=True)
-        class_counts = dict(zip(unique, counts))
-
-        # After SMOTE, minority class should be closer in count
-        if len(class_counts) == 2:
-            ratio = min(class_counts.values()) / max(class_counts.values())
-            # SMOTE should bring ratio above 0.5 at minimum
-            assert ratio > 0.4, (
-                f"Class ratio {ratio:.2f} too imbalanced after SMOTE"
-            )
+        train_minority_share = float((pd.Series(y_train) == 1).mean())
+        assert abs(train_minority_share - original_minority_share) <= 0.02
