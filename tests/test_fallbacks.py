@@ -116,3 +116,41 @@ def test_train_model_fails_if_shap_fails(monkeypatch, tmp_path):
 
     with pytest.raises(RuntimeError, match="SHAP generation failed"):
         train_model.main()
+
+
+def test_train_model_fails_if_ensemble_cv_fails(monkeypatch, tmp_path):
+    """train_model's main run raises if ensemble cross_val_score fails, without writing metrics."""
+    import train_model
+    import src.explainability
+    from sklearn.dummy import DummyClassifier
+
+    # Fast-track model training to reach ensemble CV step in main()
+    dummy = DummyClassifier(strategy="prior").fit([[0], [1]], [0, 1])
+    dummy.cv_roc_auc = 0.8
+    monkeypatch.setattr("src.model_training.train_xgboost", lambda *args, **kwargs: (dummy, 0.8, {}))
+    monkeypatch.setattr("src.model_training.train_lightgbm", lambda *args, **kwargs: (dummy, 0.8, {}))
+    monkeypatch.setattr("src.model_training.train_ensemble", lambda *args, **kwargs: dummy)
+    monkeypatch.setattr("src.model_training.save_model", lambda *args, **kwargs: None)
+    monkeypatch.setattr("joblib.dump", lambda *args, **kwargs: None)
+    monkeypatch.setattr(src.explainability, "generate_shap_plots", lambda *args, **kwargs: None)
+    from src.data_preprocessing import preprocess_data as real_preprocess
+    monkeypatch.setattr("src.data_preprocessing.preprocess_data", lambda df, *args, **kw: real_preprocess(df, *args, **{**kw, "save_preprocessor": False}))
+
+    temp_metrics_path = tmp_path / "metrics.json"
+    real_open = open
+    def safe_open(file, *args, **kwargs):
+        if 'reports' in str(file):
+            return real_open(os.path.join(str(tmp_path), os.path.basename(file)), *args, **kwargs)
+        return real_open(file, *args, **kwargs)
+    monkeypatch.setattr("builtins.open", safe_open)
+
+    def failing_cv(*args, **kwargs):
+        raise RuntimeError("Ensemble cross_val_score failed")
+
+    monkeypatch.setattr("sklearn.model_selection.cross_val_score", failing_cv)
+
+    with pytest.raises(RuntimeError, match="Ensemble cross_val_score failed"):
+        train_model.main()
+
+    assert not temp_metrics_path.exists()
+

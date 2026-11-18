@@ -92,21 +92,17 @@ def main():
     from sklearn.base import clone
     from sklearn.ensemble import VotingClassifier
     from sklearn.model_selection import cross_val_score
-    try:
-        from imblearn.pipeline import Pipeline as ImbPipeline
-        from imblearn.over_sampling import SMOTE
-        ens_cv_pipe = ImbPipeline([
-            ('smote', SMOTE(random_state=42)),
-            ('clf', VotingClassifier(
-                [('xgboost', clone(xgb_model)), ('lightgbm', clone(lgbm_model))],
-                voting='soft'
-            ))
-        ])
-        ens_cv_scores = cross_val_score(ens_cv_pipe, X_train, y_train, cv=3, scoring='roc_auc', n_jobs=-1)
-        ens_cv_auc = round(float(np.mean(ens_cv_scores)), 4)
-    except Exception as e:
-        logger.warning("Could not compute ensemble CV score: %s", e)
-        ens_cv_auc = round(float((xgb_cv_auc + lgbm_cv_auc) / 2.0), 4)
+    from imblearn.pipeline import Pipeline as ImbPipeline
+    from imblearn.over_sampling import SMOTE
+    ens_cv_pipe = ImbPipeline([
+        ('smote', SMOTE(random_state=42)),
+        ('clf', VotingClassifier(
+            [('xgboost', clone(xgb_model)), ('lightgbm', clone(lgbm_model))],
+            voting='soft'
+        ))
+    ])
+    ens_cv_scores = cross_val_score(ens_cv_pipe, X_train, y_train, cv=3, scoring='roc_auc', n_jobs=-1)
+    ens_cv_auc = round(float(np.mean(ens_cv_scores)), 4)
 
     # ------------------------------------------------------------------
     # Step 4: Evaluate models
